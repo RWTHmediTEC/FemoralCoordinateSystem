@@ -60,7 +60,7 @@ if visu
     
     % Patch properties
     patchProps.EdgeColor = 'none';
-    patchProps.FaceColor = [0.75 0.75 0.75];
+    patchProps.FaceColor = [223, 206, 161]/255;
     patchProps.FaceAlpha = 0.75;
     patchProps.EdgeLighting = 'gouraud';
     patchProps.FaceLighting = 'gouraud';
