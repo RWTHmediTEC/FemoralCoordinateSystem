@@ -9,10 +9,11 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %   'HJC': 1x3 vector: Coordinates of the hip joint center in the 
 %       coordinate system (CS) of the input femur mesh
 %   'definition': The definition to construct the femoral CS
-%       'Wu2002ISB'   - 2002 - Wu et al. - ISB recommendation on 
-%                       definitions of joint coordinate systems of various 
-%                       joints for the reporting of human joint motion -
-%                       part I: ankle, hip, and spine (default)
+%       'Wu2002' - 2002 - Wu et al. - ISB recommendation on definitions
+%                     of joint coordinate systems of various 
+%                     joints for the reporting of human joint motion -
+%                     part I: ankle, hip, and spine (default)
+%       'WuBergmannComb' - A combination of Wu2002 and Bergmann2016
 %   'iterations': number of iterations of the non-rigid ICP
 %   'visualization': true (default) or false
 % 
@@ -21,7 +22,7 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %   LMIdx: Landmark indices into the vertices of the femur
 %
 % TODO:
-%   - Add other definitions: Bergmann, Murphy, etc.
+%   - Add other definitions: Bergmann2016, Murphy1987, etc.
 %
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
@@ -39,7 +40,7 @@ addRequired(p,'side',@(x) any(validatestring(x,{'R','L'})));
 isPoint = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,3]});
 addParameter(p,'HJC',nan, isPoint);
-addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,{'Wu2002','Bergmann2016'})));
+addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,{'Wu2002','WuBergmannComb'})));
 addParameter(p,'iterations',10,...
     @(x)validateattributes(x,{'numeric'},{'scalar', '>',1, '<', 100}));
 addParameter(p,'visualization',true,@islogical);
@@ -179,11 +180,16 @@ if isnan(HJC)
 end
 switch definition
     case 'Wu2002'
-        fwTFM2AFCS = femoralCS_Wu2002(femur,side,HJC,...
+        fwTFM2AFCS = Wu2002(femur,side,HJC,...
             femur.vertices(LMIdx.('MedialEpicondyle'),:),...
             femur.vertices(LMIdx.('LateralEpicondyle'),:),...
             'visu', visu);
-     case 'Bergmann2016'
+     case 'WuBergmannComb'
+         fwTFM2AFCS = WuBergmannComb(femur,side,HJC,...
+            femur.vertices(LMIdx.('MedialPosteriorCondyle'),:),...
+            femur.vertices(LMIdx.('LateralPosteriorCondyle'),:),...
+            femur.vertices(LMIdx.('IntercondylarNotch'),:),...
+            'visu', visu);
 end
 
 end

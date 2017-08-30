@@ -5,7 +5,7 @@ List.f = List.f'; List.p = List.p';
 
 load('data\F.mat')
 
-Idx=4;
+Idx=1;
 
 [fwTFM2AFCS, LMIdx] = automaticFemoralCS(F(Idx).mesh, F(Idx).side,...
-    'definition','Wu2002','vis', true,'iter',3);
+    'definition','WuBergmannComb','vis', true,'iter',3);
