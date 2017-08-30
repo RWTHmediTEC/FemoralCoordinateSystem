@@ -14,22 +14,40 @@ parse(p,femur,side,varargin{:});
 femur = p.Results.femur;
 visu = p.Results.visualization;
 
-% algorithm
+%% inital transformation
 MechanicalAxis = createLine3d(ICN, HJC);
-
 PosteriorCondyleAxis = createLine3d(MPC, LPC);
 
 Y = normalizeVector3d(MechanicalAxis(4:6));
-
 X = normalizeVector3d(vectorCross3d(MechanicalAxis(4:6), PosteriorCondyleAxis(4:6)));
-
 Z = normalizeVector3d(vectorCross3d(X, Y));
-
-TFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
+iTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 
 if strcmp(side, 'L')
-    TFM=createRotationOy(pi)*TFM;
+    iTFM=createRotationOy(pi)*iTFM;
 end
+
+%% refinement
+iMesh.faces=femur.faces;
+iMesh.vertices=transformPoint3d(femur.vertices, iTFM);
+iLength = abs(max(iMesh.vertices(:,2)))+abs(min(iMesh.vertices(:,2)));
+DISTAL_FACTOR = 1/6;
+distalPlane=[0 DISTAL_FACTOR*iLength+min(iMesh.vertices(:,2)) 0, 0 0 1, 1 0 0];
+distalPart = cutMeshByPlane(iMesh, distalPlane, 'part','below');
+sagittalPlane=[0 0 0 1 0 0 0 1 0];
+[LCMesh, ~, MCMesh]  = cutMeshByPlane(distalPart, sagittalPlane);
+
+tempRot = refinePosteriorCondyleAxis(MCMesh, LCMesh);
+refRot = tempRot;
+while ~isequal(eye(4), tempRot)
+    MCMesh.vertices=transformPoint3d(MCMesh.vertices, tempRot);
+    LCMesh.vertices=transformPoint3d(LCMesh.vertices, tempRot);
+    [tempRot, MPC, LPC]  = refinePosteriorCondyleAxis(MCMesh, LCMesh);
+    refRot = tempRot*refRot;
+end
+
+% combination
+TFM=refRot*iTFM;
 
 %% visualization
 if visu
@@ -73,11 +91,11 @@ if visu
     patch(femurCS, patchProps)
     
     % Landmarks
-    drawPoint3d(transformPoint3d([MPC;LPC;ICN], TFM),...
-        'MarkerFaceColor','k','MarkerEdgeColor','k')
-    
+    drawPoint3d(transformPoint3d(ICN, TFM),'MarkerFaceColor','k','MarkerEdgeColor','k')
+    drawPoint3d([MPC;LPC],'MarkerFaceColor','k','MarkerEdgeColor','k')
+    % Axes
     drawLine3d(transformLine3d(MechanicalAxis, TFM),'k')
-    drawEdge3d([transformPoint3d(MPC,TFM),transformPoint3d(LPC,TFM)])
+    drawEdge3d(MPC,LPC)
     
     % Viewpoint
     set(gca, 'CameraUpVector',[0 1 0])
@@ -86,6 +104,23 @@ if visu
     set(gca, 'CameraPosition', get(gca, 'CameraTarget')+...
         [0.95, 0.05, 0.3]*CamDist);
 end
+end
+
+function [ROT, MPC, LPC] = refinePosteriorCondyleAxis(MCMesh, LCMesh)
+
+% Get the index of the most posterior point of the condyle
+[~, MPC_Idx] = min(MCMesh.vertices(:,1));
+[~, LPC_Idx] = min(LCMesh.vertices(:,1));
+% Get the most posterior point of the condyle
+MPC=MCMesh.vertices(MPC_Idx,:);
+LPC=LCMesh.vertices(LPC_Idx,:);
+% Construct the rotation into the most posterior points
+PosteriorCondyleAxis=createLine3d(MPC, LPC);
+Y = [0 1 0];
+X = normalizeVector3d(vectorCross3d(Y, PosteriorCondyleAxis(4:6)));
+Z = normalizeVector3d(vectorCross3d(X, Y));
+ROT = [[X; Y; Z; 0 0 0], [0 0 0 1]'];
+
 end
 
 

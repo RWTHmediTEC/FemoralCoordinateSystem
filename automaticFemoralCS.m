@@ -22,6 +22,7 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %   LMIdx: Landmark indices into the vertices of the femur
 %
 % TODO:
+%   - Parse new indices of MPC and LPC for 'WuBergmannComb' to the output
 %   - Add other definitions: Bergmann2016, Murphy1987, etc.
 %
 % AUTHOR: Maximilian C. M. Fischer
