@@ -15,7 +15,9 @@ femur = p.Results.femur;
 visu = p.Results.visualization;
 
 %% inital transformation
+% mechanical axis is the connection of intercondylar notch and hip joint center
 MechanicalAxis = createLine3d(ICN, HJC);
+% connection of the most posterior points of the condyles
 PosteriorCondyleAxis = createLine3d(MPC, LPC);
 
 Y = normalizeVector3d(MechanicalAxis(4:6));
@@ -28,15 +30,21 @@ if strcmp(side, 'L')
 end
 
 %% refinement
+% transform the mesh by the inertial TFM
 iMesh.faces=femur.faces;
 iMesh.vertices=transformPoint3d(femur.vertices, iTFM);
+% get the length of the femur
 iLength = abs(max(iMesh.vertices(:,2)))+abs(min(iMesh.vertices(:,2)));
+% cut off the distal part
 DISTAL_FACTOR = 1/6;
 distalPlane=[0 DISTAL_FACTOR*iLength+min(iMesh.vertices(:,2)) 0, 0 0 1, 1 0 0];
 distalPart = cutMeshByPlane(iMesh, distalPlane, 'part','below');
+% cut the distal part into the medial and lateral condyle
 sagittalPlane=[0 0 0 1 0 0 0 1 0];
 [LCMesh, ~, MCMesh]  = cutMeshByPlane(distalPart, sagittalPlane);
 
+% start refinement: find the most posterior points of the condyles and
+% rotate them into the new posterior condyle line
 tempRot = refinePosteriorCondyleAxis(MCMesh, LCMesh);
 refRot = tempRot;
 while ~isequal(eye(4), tempRot)
