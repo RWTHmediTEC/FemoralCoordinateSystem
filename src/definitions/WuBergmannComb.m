@@ -1,4 +1,4 @@
-function TFM = WuBergmannComb(femur, side, HJC, MPC, LPC, ICN, varargin)
+function [TFM, MPC_Idx, LPC_Idx] = WuBergmannComb(femur, side, HJC, MPC, LPC, ICN, varargin)
 
 % A Combination of Wu2002 and Bergmann2016
 %   Mechanical axis: Connection of intercondylar notch and hip joint center
@@ -57,6 +57,14 @@ end
 % combination
 TFM=refRot*iTFM;
 
+% The femur in the AFCS
+femurCS.vertices = transformPoint3d(femur.vertices, TFM);
+femurCS.faces = femur.faces;
+
+% Get the index of the most posterior point of the condyle
+MPC_Idx = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
+LPC_Idx = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
+
 %% visualization
 if visu
     % New figure
@@ -92,10 +100,6 @@ if visu
     patchProps.FaceAlpha = 0.75;
     patchProps.EdgeLighting = 'gouraud';
     patchProps.FaceLighting = 'gouraud';
-    
-    % The pelvis in the APCS
-    femurCS.vertices = transformPoint3d(femur.vertices, TFM);
-    femurCS.faces = femur.faces;
     patch(femurCS, patchProps)
     
     % Landmarks
