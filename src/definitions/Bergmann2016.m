@@ -1,8 +1,14 @@
-function [TFM, MPC_Idx, LPC_Idx] = WuBergmannComb(femur, side, HJC, MPC, LPC, ICN, varargin)
+function [TFM, MPC_Idx, LPC_Idx, NeckAxis_Idx] = Bergmann2016(femur, side, HJC, ...
+    MPC, LPC, ICN, Neck, Shaft, varargin)
 
-% A Combination of Wu2002 and Bergmann2016
-%   Mechanical axis: Connection of intercondylar notch and hip joint center
-%   Medial-Lateral direction based on the posterior condyle axis
+% 2016 - Bergmann et al. - Standardized Loads Acting in Hip Implants:
+%   "The origin of this coordinate system is located at the centre of the 
+%   femoral head. The +z axis points upward and is defined by the line 
+%   connecting the two points where the curved femoral mid-line intersected 
+%   with the neck axis (P1) and where it passes the intercondylar notch 
+%   (P2). The +x axis points laterally and is oriented parallel to the 
+%   proximal contour of the condyles. The +y axis points in the anterior 
+%   direction."
 
 % inputs
 p = inputParser;
@@ -14,19 +20,36 @@ parse(p,femur,side,varargin{:});
 femur = p.Results.femur;
 visu = p.Results.visualization;
 
+%% Construction of P1
+% Neck: fit circle to the neck
+[NeckCircle, NeckCircleNormal] = fitCircle3d(Neck);
+NeckAxis = [NeckCircle(1:3), NeckCircleNormal];
+% Use vertex indices of the mesh to define the neck axis
+NeckAxisPoints = intersectLineMesh3d(NeckAxis, femur.vertices, femur.faces);
+NeckAxisPoints = unique(NeckAxisPoints,'rows','stable');
+[~, NeckAxis_Idx] = pdist2(femur.vertices,NeckAxisPoints,'euclidean','Smallest',1);
+NeckAxis_Idx = [NeckAxis_Idx(1); NeckAxis_Idx(end)];
+NeckAxis = createLine3d(femur.vertices(NeckAxis_Idx(1),:),femur.vertices(NeckAxis_Idx(2),:));
+% Shaft: fit ellipsoid to the shaft
+InertiaEllipsoid = inertiaEllipsoid(Shaft);
+ShaftVector = transformVector3d([1 0 0], eulerAnglesToRotation3d(InertiaEllipsoid(7:9)));
+ShaftAxis = [InertiaEllipsoid(1:3) ShaftVector];
+% P1
+[~, P1, ~] = distanceLines3d(NeckAxis, ShaftAxis);
+FemoralMidLine=createLine3d(ICN, P1);
+
+
 %% inital transformation
-% mechanical axis is the connection of intercondylar notch and hip joint center
-MechanicalAxis = createLine3d(ICN, HJC);
-% connection of the most posterior points of the condyles
+% Connection of the most posterior points of the condyles
 PosteriorCondyleAxis = createLine3d(MPC, LPC);
 
-Y = normalizeVector3d(MechanicalAxis(4:6));
-X = normalizeVector3d(vectorCross3d(MechanicalAxis(4:6), PosteriorCondyleAxis(4:6)));
-Z = normalizeVector3d(vectorCross3d(X, Y));
+Z = normalizeVector3d(FemoralMidLine(4:6));
+Y = normalizeVector3d(vectorCross3d(FemoralMidLine(4:6), PosteriorCondyleAxis(4:6)));
+X = normalizeVector3d(vectorCross3d(Y, Z));
 iTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 
 if strcmp(side, 'L')
-    iTFM=createRotationOy(pi)*iTFM;
+    iTFM=createRotationOz(pi)*iTFM;
 end
 
 %% refinement
@@ -34,13 +57,13 @@ end
 iMesh.faces=femur.faces;
 iMesh.vertices=transformPoint3d(femur.vertices, iTFM);
 % get the length of the femur
-iLength = abs(max(iMesh.vertices(:,2)))+abs(min(iMesh.vertices(:,2)));
+iLength = abs(max(iMesh.vertices(:,3)))+abs(min(iMesh.vertices(:,3)));
 % cut off the distal part
 DISTAL_FACTOR = 1/6;
-distalPlane=[0 DISTAL_FACTOR*iLength+min(iMesh.vertices(:,2)) 0, 0 0 1, 1 0 0];
+distalPlane=[0 0 DISTAL_FACTOR*iLength+min(iMesh.vertices(:,3)), 1 0 0, 0 1 0];
 distalPart = cutMeshByPlane(iMesh, distalPlane, 'part','below');
 % cut the distal part into the medial and lateral condyle
-sagittalPlane=[0 0 0 1 0 0 0 1 0];
+sagittalPlane=createPlane(transformPoint3d(ICN, iTFM), [1 0 0]);
 [LCMesh, ~, MCMesh]  = cutMeshByPlane(distalPart, sagittalPlane);
 
 % start refinement: find the most posterior points of the condyles and
@@ -79,13 +102,13 @@ if visu
         set(FigHandle,'OuterPosition',monitorsPosition(2,:));
     end
     hold on
-    title({'The femur in the femoral coordinate system';...
+    title({'The femur in the femoral coordinate system (Bergmann2016)';...
         'Left mouse - Rotate | Mouse wheel - Zoom'})
     cameratoolbar('SetCoordSys','none')
     axis equal; axis on; 
     xlabel('X [mm]'); ylabel('Y [mm]'); zlabel('Z [mm]');
     lightH(1) = light; light('Position', -1*(get(lightH(1),'Position')));
-    view(90,0)
+    view(160, 15)
     
     % Coordinate system
     Q.C = [1 0 0; 0 1 0; 0 0 1];
@@ -103,34 +126,35 @@ if visu
     patch(femurCS, patchProps)
     
     % Landmarks
-    drawPoint3d(transformPoint3d(ICN, TFM),'MarkerFaceColor','k','MarkerEdgeColor','k')
-    drawPoint3d([MPC;LPC],'MarkerFaceColor','k','MarkerEdgeColor','k')
+    drawPoint3d(transformPoint3d(P1, TFM),'MarkerFaceColor','k','MarkerEdgeColor','k')
     % Axes
-    drawLine3d(transformLine3d(MechanicalAxis, TFM),'k')
-    drawEdge3d(MPC,LPC)
+    edgeProps.LineStyle='-';
+    edgeProps.Color='k';
+    edgeProps.Marker='o';
+    edgeProps.MarkerFaceColor='k';
+    edgeProps.MarkerEdgeColor='k';
     
-    % Viewpoint
-    set(gca, 'CameraUpVector',[0 1 0])
-    CamNormal=get(gca, 'CameraPosition')-get(gca, 'CameraTarget');
-    CamDist=vectorNorm3d(CamNormal);
-    set(gca, 'CameraPosition', get(gca, 'CameraTarget')+...
-        [0.95, 0.05, 0.3]*CamDist);
+    drawLine3d(transformLine3d(FemoralMidLine, TFM),'k')
+    drawEdge3d(MPC,LPC, edgeProps)
+    drawEdge3d(...
+        femurCS.vertices(NeckAxis_Idx(1),:),...
+        femurCS.vertices(NeckAxis_Idx(2),:), edgeProps);
 end
 end
 
 function [ROT, MPC, LPC] = refinePosteriorCondyleAxis(MCMesh, LCMesh)
 
 % Get the index of the most posterior point of the condyle
-[~, MPC_Idx] = min(MCMesh.vertices(:,1));
-[~, LPC_Idx] = min(LCMesh.vertices(:,1));
+[~, MPC_Idx] = min(MCMesh.vertices(:,2));
+[~, LPC_Idx] = min(LCMesh.vertices(:,2));
 % Get the most posterior point of the condyle
 MPC=MCMesh.vertices(MPC_Idx,:);
 LPC=LCMesh.vertices(LPC_Idx,:);
 % Construct the rotation into the most posterior points
 PosteriorCondyleAxis=createLine3d(MPC, LPC);
-Y = [0 1 0];
-X = normalizeVector3d(vectorCross3d(Y, PosteriorCondyleAxis(4:6)));
-Z = normalizeVector3d(vectorCross3d(X, Y));
+Z = [0 0 1];
+Y = normalizeVector3d(vectorCross3d(Z, PosteriorCondyleAxis(4:6)));
+X = normalizeVector3d(vectorCross3d(Y, Z));
 ROT = [[X; Y; Z; 0 0 0], [0 0 0 1]'];
 
 end
