@@ -50,7 +50,7 @@ HJC = p.Results.HJC;
 definition = p.Results.definition;
 visu = p.Results.visualization;
 
-visuDebug = true;
+visuDebug = false;
 
 %% Algorithm
 % Get inertia transformation
