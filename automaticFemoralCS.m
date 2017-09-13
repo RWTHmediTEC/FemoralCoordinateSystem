@@ -10,11 +10,11 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %       coordinate system (CS) of the input femur mesh
 %   'definition': The definition to construct the femoral CS
 %       'Wu2002' - 2002 - Wu et al. - ISB recommendation on definitions
-%                     of joint coordinate systems of various 
-%                     joints for the reporting of human joint motion -
-%                     part I: ankle, hip, and spine (default)
+%           of joint coordinate systems of various joints for the reporting
+%           of human joint motion - part I: ankle, hip, and spine (default)
+%       'Bergmann2016' - 2016 - Bergmann et al. - Standardized Loads Acting
+%           in Hip Implants
 %       'WuBergmannComb' - A combination of Wu2002 and Bergmann2016
-%   'iterations': number of iterations of the non-rigid ICP
 %   'visualization': true (default) or false
 % 
 % OUTPUT:
@@ -39,10 +39,8 @@ addRequired(p,'side',@(x) any(validatestring(x,{'R','L'})));
 isPoint = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,3]});
 addParameter(p,'HJC',nan, isPoint);
-validStrings={'Wu2002','WuBergmannComb','Bergmann2016'};
+validStrings={'Wu2002','Bergmann2016','WuBergmannComb'};
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validStrings)));
-addParameter(p,'iterations',10,...
-    @(x)validateattributes(x,{'numeric'},{'scalar', '>',1, '<', 100}));
 addParameter(p,'visualization',true,@islogical);
 
 parse(p,femur,side,varargin{:});
@@ -50,10 +48,9 @@ femur = p.Results.femur;
 side = p.Results.side;
 HJC = p.Results.HJC;
 definition = p.Results.definition;
-nICPiter = p.Results.iterations;
 visu = p.Results.visualization;
 
-visuDebug = false;
+visuDebug = true;
 
 %% Algorithm
 % Get inertia transformation
@@ -72,50 +69,35 @@ if strcmp(side, 'L')
 end
 
 if visuDebug
-    % New figure
-    monitorsPosition = get(0,'MonitorPositions');
-    FigHandle = figure('Units','pixels','renderer','opengl', 'Color', 'w','ToolBar','figure',...
-        'WindowScrollWheelFcn',@zoomWithWheel,'WindowButtonDownFcn',@rotateWithLeftMouse);
-    if     size(monitorsPosition,1) == 1
-        set(FigHandle,'OuterPosition',monitorsPosition(1,:));
-    elseif size(monitorsPosition,1) == 2
-        set(FigHandle,'OuterPosition',monitorsPosition(2,:));
-    end
-    hold on
-    % title({'The femur in the automatic femoral coordinate system (AFCS)';...
-    title({'Left mouse - Rotate | Mouse wheel - Zoom'})
-    cameratoolbar('SetCoordSys','none')
-    axis equal; axis on; xlabel('X [mm]'); ylabel('Y [mm]'); zlabel('Z [mm]');
-    lightHandle(1) = light; light('Position', -1*(get(lightHandle(1),'Position')));
-    view(90,0)
-    hold on
-    
     % Patch properties
-    patchProps.EdgeColor = 'none';
-    patchProps.FaceColor = 'r';
-    patchProps.FaceAlpha = 0.75;
+    patchProps.EdgeColor = [0.5 0.5 0.5];
+    patchProps.FaceColor = [.75 .75 .75];
+    patchProps.FaceAlpha = 1;
     patchProps.EdgeLighting = 'gouraud';
     patchProps.FaceLighting = 'gouraud';
     
     % The femur in the inertia CS
-    patch(femurInertia, patchProps)
+    visualizeMeshes(femurInertia, patchProps)
+    hold on
 end
 
-% Load target mesh
-load('target.mat','target')
+% Load template mesh
+load('template.mat','template')
 if visuDebug
-    % The target in the target CS
+    % The template in the template CS
+    patchProps.EdgeColor = 'none';
     patchProps.FaceColor = 'y';
-    patch(target, patchProps)
+    patchProps.FaceAlpha = 0.75;
+    patch(template, patchProps)
 end
 
-% Length of the target femur
-targetLength=max(target.vertices(:,1))-min(target.vertices(:,1));
+% Length of the template femur
+templateLength=max(template.vertices(:,1))-min(template.vertices(:,1));
 % Length of the input femur
 femurInertiaLength=max(femurInertia.vertices(:,1))-min(femurInertia.vertices(:,1));
 
 % Scale input femur in x-direction
-xScale=targetLength/femurInertiaLength;
+xScale=templateLength/femurInertiaLength;
 TFM2xScaling=eye(4); TFM2xScaling(1,1)=xScale;
 femurxScaling.vertices=transformPoint3d(femurInertia.vertices, TFM2xScaling);
 femurxScaling.faces=femurInertia.faces;
@@ -126,7 +108,7 @@ if visuDebug
 end
 
 % Rough pre registration
-femurPreReg.vertices = roughPreRegistration(target.vertices, femurxScaling.vertices);
+femurPreReg.vertices = roughPreRegistration(template.vertices, femurxScaling.vertices);
 femurPreReg.faces = femurInertia.faces;
 if visuDebug
     % The femur in the pre-registration CS
@@ -134,24 +116,26 @@ if visuDebug
     patch(femurPreReg, patchProps)
 end
 
-% non-rigid ICP registration
-[femurNICPReg.vertices,~,~]=....
-    nonrigidICP(target, femurPreReg,...
-    'preall',true,'vis',false,'iter',nICPiter,'verb',true);
-femurNICPReg.faces=femurPreReg.faces;
+% non-rigid ICP registration - mediTEC implementation
+templateNICP = nonRigidICP(template, femurPreReg, 'alpha', [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]');
 if visuDebug
     % The femur after NICP registration
     patchProps.FaceColor = 'c';
-    patch(femurNICPReg, patchProps)
+    patch(templateNICP, patchProps)
 end
 
-% Mapping of landmarks and areas of the target to the source
-femurNICPRegKDTree=createns(femurNICPReg.vertices);
+% Mapping of landmarks and areas of the template to the source
+femurPreRegKDTree=createns(femurPreReg.vertices);
 % Landmarks
-load('target.mat','landmarks')
-landmarksIdx = knnsearch(femurNICPRegKDTree, cell2mat(landmarks(:,2)));
-for lm=1:size(landmarks,1)
-    LMIdx.(landmarks{lm,1})=landmarksIdx(lm);
+load('template_landmarks.mat','landmarks')
+% Search the nearest neighbour of the landmarks on the NICP registered 
+% template to the vertices of the pre-registered femur. Return vertex
+% indices.
+landmarksIdx = knnsearch(femurPreRegKDTree, ...
+    templateNICP.vertices(cell2mat(struct2cell(landmarks)),:));
+LMNames = fieldnames(landmarks);
+for lm=1:length(landmarksIdx)
+    LMIdx.(LMNames{lm})=landmarksIdx(lm);
 end
 if visuDebug
     drawPoint3d(femurInertia.vertices(landmarksIdx,:),...
@@ -159,29 +143,39 @@ if visuDebug
 end
 
 % Areas
-load('target.mat','areas')
+load('template_areas.mat','areas')
 areas=[areas,cell(size(areas,1),1)];
 for a=1:size(areas,1)
-    tempFaces = target.faces(areas{a,2},:);
+    tempFaces = template.faces(areas{a,2},:);
     [unqVertIds, ~, ~] = unique(tempFaces);
-    tempVertices = target.vertices(unqVertIds,:);
-    areas{a,3} = knnsearch(femurNICPRegKDTree, tempVertices);
+    tempVertices = templateNICP.vertices(unqVertIds,:);
+    % Search the nearest neighbour of the landmarks on the NICP registered
+    % template to the vertices of the pre-registered femur. Return vertex
+    % indices.
+    areas{a,3} = knnsearch(femurPreRegKDTree, tempVertices);
     if visuDebug
         drawPoint3d(femurInertia.vertices(areas{a,3},:),...
-            'MarkerFaceColor','y','MarkerEdgeColor','y')
+            'MarkerFaceColor',[0.4 .08 .08],'MarkerEdgeColor',[0.4 .08 .08])
     end
 end
 
 if visuDebug
-    legend({'Source Inertia','Target','Source Scaled',...
-        'Source Pre-Registered','Source nICP'})
+    legend({'Source Inertia','Template','Source Scaled',...
+        'Source Pre-Registered','Template nICP'})
+    mouseControl3d
 end
 
 % Construct the femoral CS
 if isnan(HJC)
-    HJC = femur.vertices(areas{ismember(areas(:,1),'Head'),3},:);
-    % fit sphere to the head of the femur, if HJC is not a single point
-    [HJC, ~] = spherefit(HJC); HJC=HJC';
+    % fit sphere to the head of the femur, if HJC is not already available
+    Head = femur.vertices(areas{ismember(areas(:,1),'Head'),3},:);
+    [HJC, Radius] = spherefit(Head); HJC=HJC';
+    if visuDebug
+        visualizeMeshes(femur)
+        mouseControl3d
+        hold on
+        drawSphere([HJC, Radius])
+    end
 end
 switch definition
     case 'Wu2002'
@@ -199,59 +193,29 @@ switch definition
             femur.vertices(LMIdx.IntercondylarNotch,:),...
             'visu', visu);
     case 'Bergmann2016'
-        % Neck
+        % Neck axis
         Neck = femur.vertices(areas{ismember(areas(:,1),'Neck'),3},:);
+        % Fit ellipse to the neck
+        [NeckEllipse, NeckEllipseTFM] = fitEllipse3d(Neck);
+        % Neck axis is defined by center and normal of the ellipse
+        NeckAxis = [NeckEllipse(1:3), transformVector3d([0 0 1], NeckEllipseTFM)];
+        % Use vertex indices of the mesh to define the neck axis
+        NeckAxisPoints = intersectLineMesh3d(NeckAxis, femur.vertices, femur.faces);
+        NeckAxisPoints = unique(NeckAxisPoints,'rows','stable');
+        [~, NeckAxis_Idx] = pdist2(femur.vertices,NeckAxisPoints,'euclidean','Smallest',1);
+        LMIdx.NeckAxis = [NeckAxis_Idx(1); NeckAxis_Idx(end)];
+        if visuDebug
+            drawLine3d(NeckAxis);
+            drawEllipse3d(NeckEllipse)
+        end
         % Shaft
         Shaft = femur.vertices(areas{ismember(areas(:,1),'Shaft'),3},:);
-        [fwTFM2AFCS, ...
-            LMIdx.MedialPosteriorCondyle, ...
-            LMIdx.LateralPosteriorCondyle,...
-            LMIdx.NeckAxis]...
+        [fwTFM2AFCS, LMIdx.MedialPosteriorCondyle, LMIdx.LateralPosteriorCondyle]...
             = Bergmann2016(femur, side, HJC, ...
             femur.vertices(LMIdx.MedialPosteriorCondyle,:),...
             femur.vertices(LMIdx.LateralPosteriorCondyle,:),...
             femur.vertices(LMIdx.IntercondylarNotch,:),...
-            Neck, Shaft, 'visu', visu);
+            LMIdx.NeckAxis, Shaft, 'visu', visu);
 end
 
-end
-
-function props = inertiaInfo(Mesh)
-
-% Get Volume (V), Center of Mass (CoM), Inertia Tensor (J) of the Bone
-[props.V, props.CoM, props.J] = VolumeIntegrate(Mesh.vertices, Mesh.faces);
-
-% Get Principal Axes (pAxes) & Principal Moments of Inertia (Jii)
-[props.pAxes, props.Jii] = eig(props.J); % Sign of the Eigenvectors can change (In agreement with their general definition)
-
-% Keep the determinant positive
-if det(props.pAxes) < 0
-    props.pAxes = -1*props.pAxes;
-end
-
-% Create a affine transformation to move the Bone into his own Inertia System
-props.inverseInertiaTFM = [ [props.pAxes props.CoM]; [0 0 0 1] ];
-
-end
-
-function zoomWithWheel(~,evnt)
-if evnt.VerticalScrollCount > 0
-    CVA_old = get(gca,'CameraViewAngle');
-    CVA_new = CVA_old + 1;
-    draw
-elseif evnt.VerticalScrollCount < 0
-    CVA_old = get(gca,'CameraViewAngle');
-    CVA_new = CVA_old - 1;
-    draw
-end
-    function draw
-        set(gca,'CameraViewAngle',CVA_new)
-        drawnow
-    end
-end
-
-function rotateWithLeftMouse(src,~)
-if strcmp(get(src,'SelectionType'),'normal')
-    cameratoolbar('SetMode','orbit')
-end
 end

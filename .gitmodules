@@ -1,0 +1,3 @@
+[submodule "src/internal/NonRigidICP"]
+	path = src/internal/NonRigidICP
+	url = //sagnix/Programmierung/public/Matlab/NonRigidICP

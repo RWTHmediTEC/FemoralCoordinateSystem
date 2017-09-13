@@ -1,5 +1,5 @@
-function [TFM, MPC_Idx, LPC_Idx, NeckAxis_Idx] = Bergmann2016(femur, side, HJC, ...
-    MPC, LPC, ICN, Neck, Shaft, varargin)
+function [TFM, MPC_Idx, LPC_Idx] = Bergmann2016(femur, side, ...
+    HJC, MPC, LPC, ICN, NeckAxis_Idx, Shaft, varargin)
 
 % 2016 - Bergmann et al. - Standardized Loads Acting in Hip Implants:
 %   "The origin of this coordinate system is located at the centre of the 
@@ -21,23 +21,14 @@ femur = p.Results.femur;
 visu = p.Results.visualization;
 
 %% Construction of P1
-% Neck: fit circle to the neck
-[NeckCircle, NeckCircleNormal] = fitCircle3d(Neck);
-NeckAxis = [NeckCircle(1:3), NeckCircleNormal];
-% Use vertex indices of the mesh to define the neck axis
-NeckAxisPoints = intersectLineMesh3d(NeckAxis, femur.vertices, femur.faces);
-NeckAxisPoints = unique(NeckAxisPoints,'rows','stable');
-[~, NeckAxis_Idx] = pdist2(femur.vertices,NeckAxisPoints,'euclidean','Smallest',1);
-NeckAxis_Idx = [NeckAxis_Idx(1); NeckAxis_Idx(end)];
 NeckAxis = createLine3d(femur.vertices(NeckAxis_Idx(1),:),femur.vertices(NeckAxis_Idx(2),:));
 % Shaft: fit ellipsoid to the shaft
-InertiaEllipsoid = inertiaEllipsoid(Shaft);
-ShaftVector = transformVector3d([1 0 0], eulerAnglesToRotation3d(InertiaEllipsoid(7:9)));
-ShaftAxis = [InertiaEllipsoid(1:3) ShaftVector];
+ShaftEllipsoid = inertiaEllipsoid(Shaft);
+ShaftVector = transformVector3d([1 0 0], eulerAnglesToRotation3d(ShaftEllipsoid(7:9)));
+ShaftAxis = [ShaftEllipsoid(1:3) ShaftVector];
 % P1
 [~, P1, ~] = distanceLines3d(NeckAxis, ShaftAxis);
 FemoralMidLine=createLine3d(ICN, P1);
-
 
 %% inital transformation
 % Connection of the most posterior points of the condyles
