@@ -3,6 +3,8 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %
 % REQUIRED INPUT:
 %   femur: A "clean" mesh as struct with the fields vertices and faces
+%       "Clean" means a closed outer surface without holes or tunnels, 
+%       normals are oriented outwards, no duplicate vertices, ...
 %   side: 'L' or 'R': left or right femur
 %   
 % OPTIONAL INPUT:
@@ -15,6 +17,7 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %       'Bergmann2016' - 2016 - Bergmann et al. - Standardized Loads Acting
 %           in Hip Implants
 %       'WuBergmannComb' - A combination of Wu2002 and Bergmann2016
+%       'Tabletop' - A combination of Murphy1987 and Bergmann2016
 %   'visualization': true (default) or false
 % 
 % OUTPUT:
@@ -22,7 +25,6 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %   LMIdx: Landmark indices into the vertices of the femur
 %
 % TODO:
-%   - Add other definitions: Bergmann2016, Murphy1987, etc.
 %
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
@@ -39,7 +41,7 @@ addRequired(p,'side',@(x) any(validatestring(x,{'R','L'})));
 isPoint = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,3]});
 addParameter(p,'HJC',nan, isPoint);
-validStrings={'Wu2002','Bergmann2016','WuBergmannComb'};
+validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop'};
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validStrings)));
 addParameter(p,'visualization',true,@islogical);
 
@@ -50,7 +52,8 @@ HJC = p.Results.HJC;
 definition = p.Results.definition;
 visu = p.Results.visualization;
 
-visuDebug = false;
+% Visualization for debugging
+debugVisu = false;
 
 %% Algorithm
 % Get inertia transformation
@@ -66,9 +69,11 @@ if strcmp(side, 'L')
     xReflection=eye(4);
     xReflection(1,1)=-1;
     femurInertia.vertices=transformPoint3d(femurInertia.vertices, xReflection);
+    % Orient the normals outwards after reflection
+    femurInertia.faces=fliplr(femurInertia.faces);
 end
 
-if visuDebug
+if debugVisu
     % Patch properties
     patchProps.EdgeColor = [0.5 0.5 0.5];
     patchProps.FaceColor = [.75 .75 .75];
@@ -83,7 +88,7 @@ end
 
 % Load template mesh
 load('template.mat','template')
-if visuDebug
+if debugVisu
     % The template in the template CS
     patchProps.EdgeColor = 'none';
     patchProps.FaceColor = 'y';
@@ -101,7 +106,7 @@ xScale=templateLength/femurInertiaLength;
 TFM2xScaling=eye(4); TFM2xScaling(1,1)=xScale;
 femurxScaling.vertices=transformPoint3d(femurInertia.vertices, TFM2xScaling);
 femurxScaling.faces=femurInertia.faces;
-if visuDebug
+if debugVisu
     % The scaled femur in the inertia CS
     patchProps.FaceColor = 'g';
     patch(femurxScaling, patchProps)
@@ -110,7 +115,7 @@ end
 % Rough pre registration
 femurPreReg.vertices = roughPreRegistration(template.vertices, femurxScaling.vertices);
 femurPreReg.faces = femurInertia.faces;
-if visuDebug
+if debugVisu
     % The femur in the pre-registration CS
     patchProps.FaceColor = 'b';
     patch(femurPreReg, patchProps)
@@ -118,7 +123,7 @@ end
 
 % non-rigid ICP registration - mediTEC implementation
 templateNICP = nonRigidICP(template, femurPreReg, 'alpha', [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]');
-if visuDebug
+if debugVisu
     % The femur after NICP registration
     patchProps.FaceColor = 'c';
     patch(templateNICP, patchProps)
@@ -137,7 +142,7 @@ LMNames = fieldnames(landmarks);
 for lm=1:length(landmarksIdx)
     LMIdx.(LMNames{lm})=landmarksIdx(lm);
 end
-if visuDebug
+if debugVisu
     drawPoint3d(femurInertia.vertices(landmarksIdx,:),...
         'MarkerFaceColor','k','MarkerEdgeColor','k')
 end
@@ -153,30 +158,60 @@ for a=1:size(areas,1)
     % template to the vertices of the pre-registered femur. Return vertex
     % indices.
     areas{a,3} = knnsearch(femurPreRegKDTree, tempVertices);
-    if visuDebug
+    if debugVisu
         drawPoint3d(femurInertia.vertices(areas{a,3},:),...
             'MarkerFaceColor',[0.4 .08 .08],'MarkerEdgeColor',[0.4 .08 .08])
     end
 end
 
-if visuDebug
+if debugVisu
     legend({'Source Inertia','Template','Source Scaled',...
         'Source Pre-Registered','Template nICP'})
     mouseControl3d
 end
 
-% Construct the femoral CS
+%% Extract parameter
+
+% Hip joint center
 if isnan(HJC)
     % fit sphere to the head of the femur, if HJC is not already available
     Head = femur.vertices(areas{ismember(areas(:,1),'Head'),3},:);
     [HJC, Radius] = spherefit(Head); HJC=HJC';
-    if visuDebug
+    if debugVisu
         visualizeMeshes(femur)
         mouseControl3d
         hold on
         drawSphere([HJC, Radius])
     end
 end
+
+% Neck axis
+Neck = femur.vertices(areas{ismember(areas(:,1),'Neck'),3},:);
+% Fit ellipse to the neck
+[NeckEllipse, NeckEllipseTFM] = fitEllipse3d(Neck);
+% Neck axis is defined by center and normal of the ellipse
+NeckAxis = [NeckEllipse(1:3), transformVector3d([0 0 1], NeckEllipseTFM)];
+% Use vertex indices of the mesh to define the neck axis
+NeckAxisPoints = intersectLineMesh3d(NeckAxis, femur.vertices, femur.faces);
+NeckAxisPoints = unique(NeckAxisPoints,'rows','stable');
+[~, NeckAxis_Idx] = pdist2(femur.vertices,NeckAxisPoints,'euclidean','Smallest',1);
+LMIdx.NeckAxis = [NeckAxis_Idx(1); NeckAxis_Idx(end)];
+if debugVisu
+    drawLine3d(NeckAxis);
+    drawEllipse3d(NeckEllipse)
+end
+% Shaft Axis
+Shaft = femur.vertices(areas{ismember(areas(:,1),'Shaft'),3},:);
+% Fit ellipsoid to the shaft
+ShaftEllipsoid = inertiaEllipsoid(Shaft);
+% Construct the main shaft axis from the shaft ellipsoid
+ShaftVector = transformVector3d([1 0 0], eulerAnglesToRotation3d(ShaftEllipsoid(7:9)));
+ShaftAxis = [ShaftEllipsoid(1:3) ShaftVector];
+if debugVisu
+    drawLine3d(ShaftAxis);
+end
+
+%% Construct the femoral CS
 switch definition
     case 'Wu2002'
         fwTFM2AFCS = Wu2002(femur,side,HJC,...
@@ -193,29 +228,22 @@ switch definition
             femur.vertices(LMIdx.IntercondylarNotch,:),...
             'visu', visu);
     case 'Bergmann2016'
-        % Neck axis
-        Neck = femur.vertices(areas{ismember(areas(:,1),'Neck'),3},:);
-        % Fit ellipse to the neck
-        [NeckEllipse, NeckEllipseTFM] = fitEllipse3d(Neck);
-        % Neck axis is defined by center and normal of the ellipse
-        NeckAxis = [NeckEllipse(1:3), transformVector3d([0 0 1], NeckEllipseTFM)];
-        % Use vertex indices of the mesh to define the neck axis
-        NeckAxisPoints = intersectLineMesh3d(NeckAxis, femur.vertices, femur.faces);
-        NeckAxisPoints = unique(NeckAxisPoints,'rows','stable');
-        [~, NeckAxis_Idx] = pdist2(femur.vertices,NeckAxisPoints,'euclidean','Smallest',1);
-        LMIdx.NeckAxis = [NeckAxis_Idx(1); NeckAxis_Idx(end)];
-        if visuDebug
-            drawLine3d(NeckAxis);
-            drawEllipse3d(NeckEllipse)
-        end
-        % Shaft
-        Shaft = femur.vertices(areas{ismember(areas(:,1),'Shaft'),3},:);
         [fwTFM2AFCS, LMIdx.MedialPosteriorCondyle, LMIdx.LateralPosteriorCondyle]...
             = Bergmann2016(femur, side, HJC, ...
             femur.vertices(LMIdx.MedialPosteriorCondyle,:),...
             femur.vertices(LMIdx.LateralPosteriorCondyle,:),...
             femur.vertices(LMIdx.IntercondylarNotch,:),...
-            LMIdx.NeckAxis, Shaft, 'visu', visu);
+            LMIdx.NeckAxis, ShaftAxis, 'visu', visu);
+    case 'Tabletop'
+        [fwTFM2AFCS, ...
+            LMIdx.MedialPosteriorCondyle, ...
+            LMIdx.LateralPosteriorCondyle, ...
+            LMIdx.PosteriorTrochantericCrest]...
+            = Tabletop(femur, side, HJC, ...
+            femur.vertices(LMIdx.MedialPosteriorCondyle,:),...
+            femur.vertices(LMIdx.LateralPosteriorCondyle,:),...
+            femur.vertices(LMIdx.IntercondylarNotch,:),...
+            NeckEllipse, NeckEllipseTFM, ShaftAxis, 'visu', visu);
 end
 
 end

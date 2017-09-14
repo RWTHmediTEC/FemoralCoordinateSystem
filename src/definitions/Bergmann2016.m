@@ -1,5 +1,5 @@
 function [TFM, MPC_Idx, LPC_Idx] = Bergmann2016(femur, side, ...
-    HJC, MPC, LPC, ICN, NeckAxis_Idx, Shaft, varargin)
+    HJC, MPC, LPC, ICN, NeckAxis_Idx, ShaftAxis, varargin)
 
 % 2016 - Bergmann et al. - Standardized Loads Acting in Hip Implants:
 %   "The origin of this coordinate system is located at the centre of the 
@@ -22,10 +22,6 @@ visu = p.Results.visualization;
 
 %% Construction of P1
 NeckAxis = createLine3d(femur.vertices(NeckAxis_Idx(1),:),femur.vertices(NeckAxis_Idx(2),:));
-% Shaft: fit ellipsoid to the shaft
-ShaftEllipsoid = inertiaEllipsoid(Shaft);
-ShaftVector = transformVector3d([1 0 0], eulerAnglesToRotation3d(ShaftEllipsoid(7:9)));
-ShaftAxis = [ShaftEllipsoid(1:3) ShaftVector];
 % P1
 [~, P1, ~] = distanceLines3d(NeckAxis, ShaftAxis);
 FemoralMidLine=createLine3d(ICN, P1);
@@ -40,7 +36,7 @@ X = normalizeVector3d(vectorCross3d(Y, Z));
 iTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 
 if strcmp(side, 'L')
-    iTFM=createRotationOz(pi)*iTFM;
+    iTFM=createRotationOz(pi)*iTFM; %#ok<MINV>
 end
 
 %% refinement
@@ -126,7 +122,9 @@ if visu
     edgeProps.MarkerEdgeColor='k';
     
     drawLine3d(transformLine3d(FemoralMidLine, TFM),'k')
-    drawEdge3d(MPC,LPC, edgeProps)
+    drawEdge3d(...
+        femurCS.vertices(MPC_Idx,:),...
+        femurCS.vertices(LPC_Idx,:), edgeProps)
     drawEdge3d(...
         femurCS.vertices(NeckAxis_Idx(1),:),...
         femurCS.vertices(NeckAxis_Idx(2),:), edgeProps);
