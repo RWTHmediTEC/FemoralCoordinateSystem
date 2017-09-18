@@ -1,5 +1,5 @@
 function [TFM, MPC_Idx, LPC_Idx, PTC_Idx] = Tabletop(femur, side, ...
-    HJC, MPC, LPC, ICN, NeckEllipse, NeckEllipseTFM, ShaftAxis, varargin)
+    HJC, MPC, LPC, ICN, NeckAxis, ShaftAxis, varargin)
 
 % inputs
 p = inputParser;
@@ -13,7 +13,7 @@ visu = p.Results.visualization;
 
 
 %% Construction of P1
-NeckAxis = [NeckEllipse(1:3), transformVector3d([0 0 1], NeckEllipseTFM)];
+% NeckAxis = [NeckEllipse(1:3), transformVector3d([0 0 1], NeckEllipseTFM)];
 % P1
 [~, P1, ~] = distanceLines3d(NeckAxis, ShaftAxis);
 FemoralMidLine=createLine3d(ICN, P1);
@@ -62,10 +62,11 @@ PROXIMAL_FACTOR = 2/6;
 proximalPlane=[0 0 -PROXIMAL_FACTOR*iLength, 1 0 0, 0 1 0];
 proximalPart = cutMeshByPlane(iMesh, proximalPlane, 'part','above');
 % cut off the head
-neckPlaneNormal = transformVector3d([0 0 1], iTFM*NeckEllipseTFM);
-if neckPlaneNormal(3)>0; neckPlaneNormal=-neckPlaneNormal; end
-neckPlaneOrigin = transformPoint3d(NeckEllipse(1:3), iTFM); 
-neckPlane = createPlane(neckPlaneOrigin, neckPlaneNormal);
+iNeckAxis = transformLine3d(NeckAxis, iTFM);
+% neckPlaneNormal = transformVector3d(NeckAxis(4:6), iTFM);
+if iNeckAxis(6)>0; iNeckAxis(4:6)=-iNeckAxis(4:6); end
+% neckPlaneOrigin = transformPoint3d(NeckAxis(1:3), iTFM); 
+neckPlane = createPlane(iNeckAxis(1:3), iNeckAxis(4:6));
 proximalPart = cutMeshByPlane(proximalPart, neckPlane, 'part','above');
 % transform the proximal part by the 1st refinement ROT
 proximalPart.vertices = transformPoint3d(proximalPart.vertices, ref1ROT);

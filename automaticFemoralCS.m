@@ -25,6 +25,7 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %   LMIdx: Landmark indices into the vertices of the femur
 %
 % TODO:
+%   - Improve parametrisation of the neck axis by detecting the isthmus
 %
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
@@ -38,9 +39,12 @@ addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'res']));
 p = inputParser;
 addRequired(p,'femur',@(x) isstruct(x) && isfield(x, 'vertices') && isfield(x,'faces'))
 addRequired(p,'side',@(x) any(validatestring(x,{'R','L'})));
-isPoint = @(x) validateattributes(x,{'numeric'},...
+isPoint3d = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,3]});
-addParameter(p,'HJC',nan, isPoint);
+addParameter(p,'HJC',nan, isPoint3d);
+isLine3d = @(x) validateattributes(x,{'numeric'},...
+    {'nonempty','nonnan','real','finite','size',[1,6]});
+addParameter(p,'NeckAxis',nan, isLine3d);
 validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop'};
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validStrings)));
 addParameter(p,'visualization',true,@islogical);
@@ -49,6 +53,7 @@ parse(p,femur,side,varargin{:});
 femur = p.Results.femur;
 side = p.Results.side;
 HJC = p.Results.HJC;
+NeckAxis = p.Results.NeckAxis;
 definition = p.Results.definition;
 visu = p.Results.visualization;
 
@@ -149,7 +154,7 @@ end
 
 % Areas
 load('template_areas.mat','areas')
-areas=[areas,cell(size(areas,1),1)];
+areas=[areas,cell(size(areas,1),1)]; %#ok<NODEF>
 for a=1:size(areas,1)
     tempFaces = template.faces(areas{a,2},:);
     [unqVertIds, ~, ~] = unique(tempFaces);
@@ -185,12 +190,14 @@ if isnan(HJC)
     end
 end
 
-% Neck axis
-Neck = femur.vertices(areas{ismember(areas(:,1),'Neck'),3},:);
-% Fit ellipse to the neck
-[NeckEllipse, NeckEllipseTFM] = fitEllipse3d(Neck);
-% Neck axis is defined by center and normal of the ellipse
-NeckAxis = [NeckEllipse(1:3), transformVector3d([0 0 1], NeckEllipseTFM)];
+if isnan(NeckAxis)
+    % Neck axis
+    Neck = femur.vertices(areas{ismember(areas(:,1),'Neck'),3},:);
+    % Fit ellipse to the neck
+    [NeckEllipse, NeckEllipseTFM] = fitEllipse3d(Neck);
+    % Neck axis is defined by center and normal of the ellipse
+    NeckAxis = [NeckEllipse(1:3), transformVector3d([0 0 1], NeckEllipseTFM)];
+end
 % Use vertex indices of the mesh to define the neck axis
 NeckAxisPoints = intersectLineMesh3d(NeckAxis, femur.vertices, femur.faces);
 NeckAxisPoints = unique(NeckAxisPoints,'rows','stable');
@@ -243,7 +250,7 @@ switch definition
             femur.vertices(LMIdx.MedialPosteriorCondyle,:),...
             femur.vertices(LMIdx.LateralPosteriorCondyle,:),...
             femur.vertices(LMIdx.IntercondylarNotch,:),...
-            NeckEllipse, NeckEllipseTFM, ShaftAxis, 'visu', visu);
+            NeckAxis, ShaftAxis, 'visu', visu);
 end
 
 end
