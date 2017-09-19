@@ -121,14 +121,19 @@ if visu
     % Axes
     edgeProps.LineStyle='-';
     edgeProps.LineWidth = 2;
-    edgeProps.Color='k';
     edgeProps.Marker='o';
     edgeProps.MarkerFaceColor='k';
     edgeProps.MarkerEdgeColor='k';
+    edgeProps.FaceColor='none';
+    edgeProps.EdgeColor='k';
     
-    drawEdge3d(...
-        femurCS.vertices(MPC_Idx,:),...
-        femurCS.vertices(LPC_Idx,:), edgeProps)
+    tablePatch.vertices=[...
+        femurCS.vertices(MPC_Idx,:);...
+        femurCS.vertices(LPC_Idx,:);...
+        femurCS.vertices(PTC_Idx,:)];
+    tablePatch.faces=[1 2 3];
+    
+    patch(tablePatch, edgeProps)
     
     drawLine3d(transformLine3d(NeckAxis, TFM))
     

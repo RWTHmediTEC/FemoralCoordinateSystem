@@ -77,25 +77,13 @@ LPC_Idx = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
 
 %% visualization
 if visu
-    % New figure
-    monitorsPosition = get(0,'MonitorPositions');
-    FigHandle = figure('Units','pixels','renderer','opengl', ...
-        'Color', 'w','ToolBar','figure',...
-        'WindowScrollWheelFcn',@zoomWithWheel,...
-        'WindowButtonDownFcn',@rotateWithLeftMouse);
-    if     size(monitorsPosition,1) == 1
-        set(FigHandle,'OuterPosition',monitorsPosition(1,:));
-    elseif size(monitorsPosition,1) == 2
-        set(FigHandle,'OuterPosition',monitorsPosition(2,:));
-    end
-    hold on
-    title({'The femur in the femoral coordinate system (Bergmann2016)';...
-        'Left mouse - Rotate | Mouse wheel - Zoom'})
-    cameratoolbar('SetCoordSys','none')
-    axis equal; axis on; 
-    xlabel('X [mm]'); ylabel('Y [mm]'); zlabel('Z [mm]');
-    lightH(1) = light; light('Position', -1*(get(lightH(1),'Position')));
-    view(160, 15)
+    % Patch properties
+    patchProps.EdgeColor = 'none';
+    patchProps.FaceColor = [223, 206, 161]/255;
+    patchProps.FaceAlpha = 0.75;
+    patchProps.EdgeLighting = 'gouraud';
+    patchProps.FaceLighting = 'gouraud';
+    visualizeMeshes(femurCS, patchProps)
     
     % Coordinate system
     Q.C = [1 0 0; 0 1 0; 0 0 1];
@@ -104,30 +92,25 @@ if visu
     Q.D = QDScaling*[1 0 0; 0 1 0; 0 0 1];
     [~] = quiver3D(Q.P, Q.D, Q.C);
     
-    % Patch properties
-    patchProps.EdgeColor = 'none';
-    patchProps.FaceColor = [223, 206, 161]/255;
-    patchProps.FaceAlpha = 0.75;
-    patchProps.EdgeLighting = 'gouraud';
-    patchProps.FaceLighting = 'gouraud';
-    patch(femurCS, patchProps)
-    
     % Landmarks
     drawPoint3d(transformPoint3d(P1, TFM),'MarkerFaceColor','k','MarkerEdgeColor','k')
     % Axes
     edgeProps.LineStyle='-';
     edgeProps.Color='k';
-    edgeProps.Marker='o';
-    edgeProps.MarkerFaceColor='k';
-    edgeProps.MarkerEdgeColor='k';
     
-    drawLine3d(transformLine3d(FemoralMidLine, TFM),'k')
-    drawEdge3d(...
-        femurCS.vertices(MPC_Idx,:),...
-        femurCS.vertices(LPC_Idx,:), edgeProps)
+    drawEdge3d(clipLine3d(transformLine3d(FemoralMidLine, TFM),...
+        boundingBox3d(femurCS.vertices)),edgeProps)
     drawEdge3d(...
         femurCS.vertices(NeckAxis_Idx(1),:),...
         femurCS.vertices(NeckAxis_Idx(2),:), edgeProps);
+    edgeProps.Marker='o';
+    edgeProps.MarkerEdgeColor='k';
+    edgeProps.MarkerFaceColor='k';
+    drawEdge3d(...
+        femurCS.vertices(MPC_Idx,:),...
+        femurCS.vertices(LPC_Idx,:), edgeProps)
+    
+    viewButtonsRAS
 end
 end
 
@@ -146,27 +129,4 @@ Y = normalizeVector3d(vectorCross3d(Z, PosteriorCondyleAxis(4:6)));
 X = normalizeVector3d(vectorCross3d(Y, Z));
 ROT = [[X; Y; Z; 0 0 0], [0 0 0 1]'];
 
-end
-
-
-function zoomWithWheel(~,evnt)
-if evnt.VerticalScrollCount > 0
-    CVA_old = get(gca,'CameraViewAngle');
-    CVA_new = CVA_old + 1;
-    draw
-elseif evnt.VerticalScrollCount < 0
-    CVA_old = get(gca,'CameraViewAngle');
-    CVA_new = CVA_old - 1;
-    draw
-end
-    function draw
-        set(gca,'CameraViewAngle',CVA_new)
-        drawnow
-    end
-end
-
-function rotateWithLeftMouse(src,~)
-if strcmp(get(src,'SelectionType'),'normal')
-    cameratoolbar('SetMode','orbit')
-end
 end
