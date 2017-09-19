@@ -200,7 +200,7 @@ end
 NeckPlaneNormal=NeckAxis(4:6);
 NeckPlane=createPlane(NeckAxis(1:3), NeckPlaneNormal);
 if ~isBelowPlane(HJC,NeckPlane)
-    NeckPlane=reversePlane(NeckPlane);
+    NeckAxis=reverseLine(NeckAxis);
 end
 % Use vertex indices of the mesh to define the neck axis
 NeckAxisPoints = intersectLineMesh3d(NeckAxis, femur.vertices, femur.faces);
