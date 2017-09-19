@@ -176,7 +176,6 @@ if debugVisu
 end
 
 %% Extract parameter
-
 % Hip joint center
 if isnan(HJC)
     % fit sphere to the head of the femur, if HJC is not already available
@@ -197,6 +196,11 @@ if isnan(NeckAxis)
     [NeckEllipse, NeckEllipseTFM] = fitEllipse3d(Neck);
     % Neck axis is defined by center and normal of the ellipse
     NeckAxis = [NeckEllipse(1:3), transformVector3d([0 0 1], NeckEllipseTFM)];
+end
+NeckPlaneNormal=NeckAxis(4:6);
+NeckPlane=createPlane(NeckAxis(1:3), NeckPlaneNormal);
+if ~isBelowPlane(HJC,NeckPlane)
+    NeckPlane=reversePlane(NeckPlane);
 end
 % Use vertex indices of the mesh to define the neck axis
 NeckAxisPoints = intersectLineMesh3d(NeckAxis, femur.vertices, femur.faces);
