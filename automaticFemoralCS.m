@@ -65,9 +65,7 @@ debugVisu = false;
 femurProps = inertiaInfo(femur);
 
 % Transform the vertices into the temporary inertia coordinate system
-femurInertia.vertices = ...
-    transformPoint3d(femur.vertices, inv(femurProps.inverseInertiaTFM));
-femurInertia.faces = femur.faces;
+femurInertia = transformPoint3d(femur, inv(femurProps.inverseInertiaTFM));
 
 % For left femurs reflect along the x-axis after inertia transform
 if strcmp(side, 'L')
@@ -109,8 +107,7 @@ femurInertiaLength=max(femurInertia.vertices(:,1))-min(femurInertia.vertices(:,1
 % Scale input femur in x-direction
 xScale=templateLength/femurInertiaLength;
 TFM2xScaling=eye(4); TFM2xScaling(1,1)=xScale;
-femurxScaling.vertices=transformPoint3d(femurInertia.vertices, TFM2xScaling);
-femurxScaling.faces=femurInertia.faces;
+femurxScaling=transformPoint3d(femurInertia, TFM2xScaling);
 if debugVisu
     % The scaled femur in the inertia CS
     patchProps.FaceColor = 'g';

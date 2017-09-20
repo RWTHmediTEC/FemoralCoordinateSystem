@@ -38,8 +38,7 @@ if visu
     patchProps.EdgeLighting = 'gouraud';
     patchProps.FaceLighting = 'gouraud';
     % The femur in the AFCS
-    femurCS.vertices = transformPoint3d(femur.vertices, TFM);
-    femurCS.faces = femur.faces;
+    femurCS = transformPoint3d(femur, TFM);
     visualizeMeshes(femurCS, patchProps)
     
     % Coordinate system

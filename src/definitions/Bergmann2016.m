@@ -41,8 +41,7 @@ end
 
 %% refinement
 % transform the mesh by the inertial TFM
-iMesh.faces=femur.faces;
-iMesh.vertices=transformPoint3d(femur.vertices, iTFM);
+iMesh=transformPoint3d(femur, iTFM);
 % get the length of the femur
 iLength = abs(max(iMesh.vertices(:,3)))+abs(min(iMesh.vertices(:,3)));
 % cut off the distal part
@@ -68,8 +67,7 @@ end
 TFM=refRot*iTFM;
 
 % The femur in the AFCS
-femurCS.vertices = transformPoint3d(femur.vertices, TFM);
-femurCS.faces = femur.faces;
+femurCS = transformPoint3d(femur, TFM);
 
 % Get the index of the most posterior point of the condyle
 MPC_Idx = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
