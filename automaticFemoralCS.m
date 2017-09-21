@@ -45,7 +45,7 @@ addParameter(p,'HJC',nan, isPoint3d);
 isLine3d = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,6]});
 addParameter(p,'NeckAxis',nan, isLine3d);
-validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop'};
+validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop','TabletopMediTEC'};
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validStrings)));
 addParameter(p,'visualization',true,@islogical);
 
@@ -197,17 +197,18 @@ end
 NeckPlaneNormal=NeckAxis(4:6);
 NeckPlane=createPlane(NeckAxis(1:3), NeckPlaneNormal);
 if ~isBelowPlane(HJC,NeckPlane)
-    NeckAxis=reverseLine(NeckAxis);
+    NeckAxis=reverseLine3d(NeckAxis);
+end
+if debugVisu
+    drawLine3d(NeckAxis);
+    drawEllipse3d(NeckEllipse)
 end
 % Use vertex indices of the mesh to define the neck axis
 NeckAxisPoints = intersectLineMesh3d(NeckAxis, femur.vertices, femur.faces);
 NeckAxisPoints = unique(NeckAxisPoints,'rows','stable');
 [~, NeckAxis_Idx] = pdist2(femur.vertices,NeckAxisPoints,'euclidean','Smallest',1);
 LMIdx.NeckAxis = [NeckAxis_Idx(1); NeckAxis_Idx(end)];
-if debugVisu
-    drawLine3d(NeckAxis);
-    drawEllipse3d(NeckEllipse)
-end
+
 % Shaft Axis
 Shaft = femur.vertices(areas{ismember(areas(:,1),'Shaft'),3},:);
 % Fit ellipsoid to the shaft
@@ -252,6 +253,16 @@ switch definition
             femur.vertices(LMIdx.LateralPosteriorCondyle,:),...
             femur.vertices(LMIdx.IntercondylarNotch,:),...
             NeckAxis, ShaftAxis, 'visu', visu);
+    case 'TabletopMediTEC'
+        [fwTFM2AFCS, ...
+            LMIdx.MedialPosteriorCondyle, ...
+            LMIdx.LateralPosteriorCondyle, ...
+            LMIdx.PosteriorTrochantericCrest]...
+            = TabletopMediTEC(femur, side, HJC, ...
+            femur.vertices(LMIdx.MedialPosteriorCondyle,:),...
+            femur.vertices(LMIdx.LateralPosteriorCondyle,:),...
+            femur.vertices(LMIdx.IntercondylarNotch,:),...
+            NeckAxis, 'visu', visu);
 end
 
 end

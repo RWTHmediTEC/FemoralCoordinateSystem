@@ -10,4 +10,4 @@ load('data\F.mat')
 Idx=4;
 
 [fwTFM2AFCS, LMIdx] = automaticFemoralCS(F(Idx).mesh, F(Idx).side,...
-    'definition','Tabletop','vis', true);
+    'definition','TabletopMediTEC','vis', true);
