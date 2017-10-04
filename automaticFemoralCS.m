@@ -58,7 +58,7 @@ definition = p.Results.definition;
 visu = p.Results.visualization;
 
 % Visualization for debugging
-debugVisu = false;
+debugVisu = true;
 
 %% Algorithm
 % Get inertia transformation
@@ -192,22 +192,27 @@ if isnan(NeckAxis)
     % Fit ellipse to the neck
     [NeckEllipse, NeckEllipseTFM] = fitEllipse3d(Neck);
     % Neck axis is defined by center and normal of the ellipse
-    NeckAxis = [NeckEllipse(1:3), transformVector3d([0 0 1], NeckEllipseTFM)];
+    NeckAxis = [NeckEllipse(1:3), normalizeVector3d(transformVector3d([0 0 1], NeckEllipseTFM))];
 end
-NeckPlaneNormal=NeckAxis(4:6);
-NeckPlane=createPlane(NeckAxis(1:3), NeckPlaneNormal);
+NeckPlane=createPlane(NeckAxis(1:3), NeckAxis(4:6));
 if ~isBelowPlane(HJC,NeckPlane)
     NeckAxis=reverseLine3d(NeckAxis);
 end
 if debugVisu
-    drawLine3d(NeckAxis);
     drawEllipse3d(NeckEllipse)
 end
 % Use vertex indices of the mesh to define the neck axis
 NeckAxisPoints = intersectLineMesh3d(NeckAxis, femur.vertices, femur.faces);
 NeckAxisPoints = unique(NeckAxisPoints,'rows','stable');
 [~, NeckAxis_Idx] = pdist2(femur.vertices,NeckAxisPoints,'euclidean','Smallest',1);
-LMIdx.NeckAxis = [NeckAxis_Idx(1); NeckAxis_Idx(end)];
+LMIdx.NeckAxis = [NeckAxis_Idx(end); NeckAxis_Idx(1)];
+if debugVisu
+    NeckAxis2=createLine3d(...
+        femur.vertices(LMIdx.NeckAxis(1),:),...
+        femur.vertices(LMIdx.NeckAxis(2),:));
+    NeckAxis2(4:6)=normalizeVector3d(NeckAxis2(4:6));
+    drawVector3d(NeckAxis2(1:3),NeckAxis2(4:6)*100,'r');
+end
 
 % Shaft Axis
 Shaft = femur.vertices(areas{ismember(areas(:,1),'Shaft'),3},:);
@@ -216,8 +221,39 @@ ShaftEllipsoid = inertiaEllipsoid(Shaft);
 % Construct the main shaft axis from the shaft ellipsoid
 ShaftVector = transformVector3d([1 0 0], eulerAnglesToRotation3d(ShaftEllipsoid(7:9)));
 ShaftAxis = [ShaftEllipsoid(1:3) ShaftVector];
+ShaftPlane=createPlane(ShaftAxis(1:3), ShaftAxis(4:6));
+if ~isBelowPlane(HJC,ShaftPlane)
+    ShaftAxis=reverseLine3d(ShaftAxis);
+end
 if debugVisu
-    drawLine3d(ShaftAxis);
+end
+% Use vertex indices of the mesh to define the shaft axis
+ShaftAxisPoints = intersectLineMesh3d(ShaftAxis, femur.vertices, femur.faces);
+ShaftAxisPoints = unique(ShaftAxisPoints,'rows','stable');
+[~, ShaftAxis_Idx] = pdist2(femur.vertices,ShaftAxisPoints,'euclidean','Smallest',1);
+LMIdx.ShaftAxis = [ShaftAxis_Idx(1); ShaftAxis_Idx(end)];
+if debugVisu
+    ShaftAxis2=createLine3d(...
+        femur.vertices(LMIdx.ShaftAxis(1),:),...
+        femur.vertices(LMIdx.ShaftAxis(2),:));
+    ShaftAxis2(4:6)=normalizeVector3d(ShaftAxis2(4:6));
+    drawVector3d(ShaftAxis2(1:3),ShaftAxis2(4:6)*100,'g');
+end
+
+% Neck Orthogonal
+NeckOrthogonal(1:3) = NeckAxis(1:3);
+NeckOrthogonal(4:6) = vectorCross3d(NeckAxis(4:6), ShaftAxis(4:6));
+% Use vertex indices of the mesh to define the shaft axis
+NeckOrthogonalPoints = intersectLineMesh3d(NeckOrthogonal, femur.vertices, femur.faces);
+NeckOrthogonalPoints = unique(NeckOrthogonalPoints,'rows','stable');
+[~, NeckOrthogonalIdx] = pdist2(femur.vertices,NeckOrthogonalPoints,'euclidean','Smallest',1);
+LMIdx.NeckOrthogonal = [NeckOrthogonalIdx(end); NeckOrthogonalIdx(1)];
+if debugVisu
+    NeckOrthogonal2=createLine3d(...
+        femur.vertices(LMIdx.NeckOrthogonal(1),:),...
+        femur.vertices(LMIdx.NeckOrthogonal(2),:));
+    NeckOrthogonal2(4:6)=normalizeVector3d(NeckOrthogonal2(4:6));
+    drawVector3d(NeckOrthogonal2(1:3),NeckOrthogonal2(4:6)*100,'b');
 end
 
 %% Construct the femoral CS
