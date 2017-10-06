@@ -123,6 +123,7 @@ if debugVisu
 end
 
 % non-rigid ICP registration - mediTEC implementation
+disp('Morphing of the template mesh to the target')
 templateNICP = nonRigidICP(template, femurPreReg, 'alpha', [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]');
 if debugVisu
     % The femur after NICP registration
