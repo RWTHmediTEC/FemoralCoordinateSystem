@@ -1,3 +1,6 @@
 [submodule "src/internal/NonRigidICP"]
 	path = src/internal/NonRigidICP
 	url = //sagnix/Programmierung/public/Matlab/NonRigidICP
+[submodule "src/internal/AnatomicalNeckAxis"]
+	path = src/internal/AnatomicalNeckAxis
+	url = //sagnix/Programmierung/public/Matlab/AnatomicalNeckAxis

@@ -48,6 +48,7 @@ addParameter(p,'NeckAxis',nan, isLine3d);
 validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop','TabletopMediTEC'};
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validStrings)));
 addParameter(p,'visualization',true,@islogical);
+addParameter(p,'debugVisualization',false,@islogical);
 
 parse(p,femur,side,varargin{:});
 femur = p.Results.femur;
@@ -56,9 +57,7 @@ HJC = p.Results.HJC;
 NeckAxis = p.Results.NeckAxis;
 definition = p.Results.definition;
 visu = p.Results.visualization;
-
-% Visualization for debugging
-debugVisu = false;
+debugVisu = p.Results.debugVisualization;
 
 %% Algorithm
 % Get inertia transformation
@@ -236,7 +235,7 @@ end
 NeckOrthogonal(1:3) = NeckAxis(1:3);
 NeckOrthogonal(4:6) = vectorCross3d(NeckAxis(4:6), ShaftAxis(4:6));
 % Use vertex indices of the mesh to define the shaft axis
-if strcmp(side, 'L'); NeckOrthogonal(4:6)=-NeckOrthogonal(4:6); end;
+if strcmp(side, 'L'); NeckOrthogonal(4:6)=-NeckOrthogonal(4:6); end
 LMIdx.NeckOrthogonal = lineToVertexIndices(NeckOrthogonal, femur);
 if debugVisu
     NeckOrthogonal2=createLine3d(...
@@ -245,6 +244,11 @@ if debugVisu
     NeckOrthogonal2(4:6)=normalizeVector3d(NeckOrthogonal2(4:6));
     drawVector3d(NeckOrthogonal2(1:3),NeckOrthogonal2(4:6)*100,'b');
 end
+
+% Refinement of the neck axis
+NeckAxis = ANA(femur.vertices, femur.faces, side, ...
+    LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,'visu', visu);
+LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 
 %% Construct the femoral CS
 switch definition
