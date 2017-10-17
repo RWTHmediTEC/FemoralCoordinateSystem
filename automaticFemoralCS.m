@@ -29,7 +29,7 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
-% VERSION: 1.0
+% VERSION: 1.0.0
 % DATE: 2017-07-07
 
 addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'src']));
@@ -246,9 +246,9 @@ if debugVisu
     drawVector3d(NeckOrthogonal2(1:3),NeckOrthogonal2(4:6)*100,'b');
 end
 
-% Refinement of the neck axis
+%% Refinement of the neck axis
 NeckAxis = ANA(femur.vertices, femur.faces, side, ...
-    LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,'visu', visu);
+    LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,'visu', false);
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 
 %% Construct the femoral CS
