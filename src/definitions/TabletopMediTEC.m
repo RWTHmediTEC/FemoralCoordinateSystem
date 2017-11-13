@@ -1,6 +1,16 @@
 function [TFM, MPC_Idx, LPC_Idx, PTC_Idx] = TabletopMediTEC(femur, side, ...
     HJC, MPC, LPC, ICN, NeckAxis, varargin)
 
+% Y axis: Normal of the tabletop plane.
+%         Definition of the tabletop plane:
+%           - Resection of the femoral neck including the head
+%           - Positioning of the posterior side of the femur on a table
+%           - The three contact points define the tabletop plane
+% Z axis: Projection of the mechanical axis on the tabletop plane. The
+%         mechanical axis is defined by intercondylar notch and the hip
+%         joint center
+% X axis: Orthogonal to Y and Z axis
+
 % inputs
 p = inputParser;
 addRequired(p,'femur',@(x) isstruct(x) && isfield(x, 'vertices') && isfield(x,'faces'))
@@ -12,11 +22,10 @@ femur = p.Results.femur;
 visu = p.Results.visualization;
 
 
-%% Construction of P1
-% P1
+%% Construction of an inital system
 MechanicalAxis=createLine3d(ICN, HJC);
 
-%% inital transformation
+%% Inital transformation (iTFM)
 % Connection of the most posterior points of the condyles
 PosteriorCondyleAxis = createLine3d(MPC, LPC);
 
@@ -25,24 +34,25 @@ Y = normalizeVector3d(vectorCross3d(MechanicalAxis(4:6), PosteriorCondyleAxis(4:
 X = normalizeVector3d(vectorCross3d(Y, Z));
 iTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 
+% If it is a left femur, rotate 180° around the Z axis
 if strcmp(side, 'L')
     iTFM=createRotationOz(pi)*iTFM; %#ok<MINV>
 end
 
-%% refinement 1
-% transform the mesh by the inital TFM
+%% Refinement 1
+% Transform the mesh by the inital TFM
 iMesh=transformPoint3d(femur, iTFM);
-% get the length of the femur
+% Get the length of the femur
 iLength = abs(max(iMesh.vertices(:,3)))+abs(min(iMesh.vertices(:,3)));
-% cut off the distal part
+% Cut off the distal part
 DISTAL_FACTOR = 1/6;
 distalPlane=[0 0 DISTAL_FACTOR*iLength+min(iMesh.vertices(:,3)), 1 0 0, 0 1 0];
 distalPart = cutMeshByPlane(iMesh, distalPlane, 'part','below');
-% cut the distal part into the medial and lateral condyle
+% Cut the distal part into the medial and lateral condyle
 sagittalPlane=createPlane(transformPoint3d(ICN, iTFM), [1 0 0]);
 [LCMesh, ~, MCMesh]  = cutMeshByPlane(distalPart, sagittalPlane);
 
-% start refinement: find the most posterior points of the condyles and
+% Start refinement: find the most posterior points of the condyles and
 % rotate them into the new posterior condyle line
 tempROT = refinePosteriorCondyleAxis(MCMesh, LCMesh);
 ref1ROT = tempROT;
@@ -53,17 +63,17 @@ while ~isequal(eye(4), tempROT)
     ref1ROT = tempROT*ref1ROT;
 end
 
-%% refinement 2
-% cut off the proximal part
+%% Refinement 2
+% Cut off the proximal part
 PROXIMAL_FACTOR = 2/6;
 proximalPlane=[0 0 -PROXIMAL_FACTOR*iLength, 1 0 0, 0 1 0];
 proximalPart = cutMeshByPlane(iMesh, proximalPlane, 'part','above');
-% cut off the head
+% Resect the neck and the head
 iNeckAxis = transformLine3d(NeckAxis, iTFM);
 if iNeckAxis(6)>0; iNeckAxis(4:6)=-iNeckAxis(4:6); end
 neckPlane = createPlane(iNeckAxis(1:3), iNeckAxis(4:6));
 proximalPart = cutMeshByPlane(proximalPart, neckPlane, 'part','above');
-% transform the proximal part by the 1st refinement ROT
+% Transform the proximal part by the 1st refinement ROT
 proximalPart.vertices = transformPoint3d(proximalPart.vertices, ref1ROT);
 % Get the most posterior point of the trochanteric crest
 [~, PTC_Idx] = min(proximalPart.vertices(:,2));
@@ -71,6 +81,7 @@ PTC=proximalPart.vertices(PTC_Idx,:);
 % Create the tabletop plane
 tabletopPlane = createPlane(MPC, LPC, PTC);
 tabletopNormal = planeNormal(tabletopPlane);
+% Normal has to point in anterior direction
 if tabletopNormal(2) < 0; tabletopNormal=-tabletopNormal; end
 % Create the 2nd refinement ROT
 X = [1 0 0];
@@ -78,16 +89,21 @@ Y = normalizeVector3d(tabletopNormal);
 Z = normalizeVector3d(vectorCross3d(X, Y));
 ref2ROT = [[X; Y; Z; 0 0 0], [0 0 0 1]'];
 
-% combination
+% Combine all transformations
 TFM=ref2ROT*ref1ROT*iTFM;
 
 % The femur in the AFCS
 femurCS = transformPoint3d(femur, TFM);
+% Sanity check:
+% Projection of the mechanical axis on the tabletop plane == Z axis?
+MAproj=projLineOnPlane(transformLine3d(MechanicalAxis,TFM),[0 0 0 1 0 0 0 0 1]);
+assert(all(ismembertol([0 0 1],normalizeVector3d(MAproj(4:6)))))
 
-% Get the index of the tabletop points
+% Position of the landmarks in the bone CS
 MPC = transformPoint3d(MPC,ref2ROT);
 LPC = transformPoint3d(LPC,ref2ROT);
 PTC = transformPoint3d(PTC,ref2ROT);
+% Get the vertex indices of the tabletop points
 MPC_Idx = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
 LPC_Idx = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
 PTC_Idx = find(ismembertol(femurCS.vertices, PTC,'ByRows',true'));
@@ -113,23 +129,30 @@ if visu
     % Landmarks
     drawPoint3d(femurCS.vertices(PTC_Idx,:),'MarkerFaceColor','k','MarkerEdgeColor','k')
     % Axes
-    edgeProps.LineStyle='-';
-    edgeProps.LineWidth = 2;
-    edgeProps.Marker='o';
-    edgeProps.MarkerFaceColor='k';
-    edgeProps.MarkerEdgeColor='k';
-    edgeProps.FaceColor='none';
-    edgeProps.EdgeColor='k';
+    drawLine3d(transformLine3d(NeckAxis, TFM))
+    % Tabletop patch
+    patchProps.LineStyle='none';
+    patchProps.LineWidth = 2;
+    patchProps.Marker='o';
+    patchProps.MarkerFaceColor='k';
+    patchProps.MarkerEdgeColor='k';
+    patchProps.FaceColor='k';
+    patchProps.FaceAlpha=0.75;
+    patchProps.EdgeColor='none';
     
     tablePatch.vertices=[...
         femurCS.vertices(MPC_Idx,:);...
         femurCS.vertices(LPC_Idx,:);...
         femurCS.vertices(PTC_Idx,:)];
-    tablePatch.faces=[1 2 3];
+    tablePatch.faces=1:3;
     
-    patch(tablePatch, edgeProps)
+    patch(tablePatch, patchProps)
     
-    drawLine3d(transformLine3d(NeckAxis, TFM))
+    textPosX=1/3*(MPC(1)+LPC(1)+PTC(1));
+    textPosY=MPC(2);
+    textPosZ=1/3*(MPC(3)+LPC(3)+PTC(3));
+    
+    text(textPosX,textPosY,textPosZ,'Tabletop plane','Rotation',90)
     
     viewButtonsRAS
 end

@@ -48,6 +48,7 @@ addParameter(p,'NeckAxis',nan, isLine3d);
 validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop','TabletopMediTEC'};
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validStrings)));
 addParameter(p,'visualization',true,@islogical);
+addParameter(p,'verbose',false,@islogical);
 addParameter(p,'debugVisualization',false,@islogical);
 
 parse(p,femur,side,varargin{:});
@@ -57,6 +58,7 @@ HJC = p.Results.HJC;
 NeckAxis = p.Results.NeckAxis;
 definition = p.Results.definition;
 visu = p.Results.visualization;
+verb = p.Results.verbose;
 debugVisu = p.Results.debugVisualization;
 
 %% Algorithm
@@ -123,8 +125,10 @@ if debugVisu
 end
 
 % non-rigid ICP registration - mediTEC implementation
-disp('Morphing of the template mesh to the target')
-templateNICP = nonRigidICP(template, femurPreReg, 'alpha', [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]');
+disp('____________ Morphing of the template mesh to the target _____________')
+templateNICP = nonRigidICP(template, femurPreReg, ...
+    'alpha', [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]',...
+    'verbosity', double(verb));
 if debugVisu
     % The femur after NICP registration
     patchProps.FaceColor = 'c';
@@ -247,8 +251,9 @@ if debugVisu
 end
 
 %% Refinement of the neck axis
+disp('_______________ Detection of the anatomical neck axis ________________')
 NeckAxis = ANA(femur.vertices, femur.faces, side, ...
-    LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,'visu', false);
+    LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,'visu', false,'verbose',verb);
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 
 %% Construct the femoral CS
