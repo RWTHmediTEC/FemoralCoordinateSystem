@@ -50,7 +50,7 @@ distalPlane=[0 0 DISTAL_FACTOR*iLength+min(iMesh.vertices(:,3)), 1 0 0, 0 1 0];
 distalPart = cutMeshByPlane(iMesh, distalPlane, 'part','below');
 % cut the distal part into the medial and lateral condyle
 sagittalPlane=createPlane(transformPoint3d(ICN, iTFM), [1 0 0]);
-[LCMesh, ~, MCMesh]  = cutMeshByPlane(distalPart, sagittalPlane);
+[LCMesh, ~, MCMesh] = cutMeshByPlane(distalPart, sagittalPlane);
 
 % start refinement: find the most posterior points of the condyles and
 % rotate them into the new posterior condyle line
