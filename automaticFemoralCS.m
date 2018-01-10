@@ -24,8 +24,6 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %   fwTFM2AFCS: Forward transformation of the femur into the femoral CS
 %   LMIdx: Landmark indices into the vertices of the femur
 %
-% TODO:
-%   - Improve parametrisation of the neck axis by detecting the isthmus
 %
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
