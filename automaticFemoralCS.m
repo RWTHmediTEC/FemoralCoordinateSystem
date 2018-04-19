@@ -251,7 +251,7 @@ end
 %% Refinement of the neck axis
 disp('_______________ Detection of the anatomical neck axis ________________')
 NeckAxis = ANA(femur.vertices, femur.faces, side, ...
-    LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,'visu', false,'verbose',verb);
+    LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,'visu', debugVisu,'verbose',verb);
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 
 %% Construct the femoral CS
