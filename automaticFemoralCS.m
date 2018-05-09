@@ -113,7 +113,7 @@ if debugVisu
     patch(femurxScaling, patchProps)
 end
 
-% Rough pre registration
+% Rough pre-registration
 femurPreReg.vertices = roughPreRegistration(template.vertices, femurxScaling.vertices);
 femurPreReg.faces = femurInertia.faces;
 if debugVisu
@@ -122,10 +122,20 @@ if debugVisu
     patch(femurPreReg, patchProps)
 end
 
+% Adapt femoral version of the template
+templatePreReg.vertices = adjustTemplateFemoralVersion(template.vertices, femurPreReg.vertices);
+templatePreReg.faces = template.faces;
+if debugVisu
+    % The femur in the pre-registration CS
+    patchProps.FaceColor = 'm';
+    patch(templatePreReg, patchProps)
+end
+
 % non-rigid ICP registration - mediTEC implementation
 disp('____________ Morphing of the template mesh to the target _____________')
-templateNICP = nonRigidICP(template, femurPreReg, ...
-    'alpha', [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]',...
+NRICP_ALPHA = [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]';
+templateNICP = nonRigidICP(templatePreReg, femurPreReg, ...
+    'alpha', NRICP_ALPHA,...
     'verbosity', double(verb));
 if debugVisu
     % The femur after NICP registration
@@ -170,7 +180,7 @@ end
 
 if debugVisu
     legend({'Source Inertia','Template','Source Scaled',...
-        'Source Pre-Registered','Template nICP'})
+        'Source Pre-Registered','Template Pre-Registered','Template nICP'})
     mouseControl3d
 end
 
