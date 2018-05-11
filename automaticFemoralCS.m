@@ -18,6 +18,8 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %           in Hip Implants
 %       'WuBergmannComb' - A combination of Wu2002 and Bergmann2016
 %       'Tabletop' - A combination of Murphy1987 and Bergmann2016
+%       'TabletopMediTEC' - Table top method taking into account the 
+%           mechanical axis 
 %   'visualization': true (default) or false
 % 
 % OUTPUT:
