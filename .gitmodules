@@ -4,3 +4,6 @@
 [submodule "src/internal/AnatomicalNeckAxis"]
 	path = src/internal/AnatomicalNeckAxis
 	url = //sagnix/Programmierung/public/Matlab/AnatomicalNeckAxis
+[submodule "src/external/Quiver3DbyShawnArseneau"]
+	path = src/external/Quiver3DbyShawnArseneau
+	url = https://github.com/oqilipo/Quiver3DbyShawnArseneau

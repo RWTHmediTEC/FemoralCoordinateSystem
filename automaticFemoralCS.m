@@ -248,7 +248,7 @@ end
 
 % Neck Orthogonal
 NeckOrthogonal(1:3) = NeckAxis(1:3);
-NeckOrthogonal(4:6) = vectorCross3d(NeckAxis(4:6), ShaftAxis(4:6));
+NeckOrthogonal(4:6) = crossProduct3d(NeckAxis(4:6), ShaftAxis(4:6));
 % Use vertex indices of the mesh to define the neck orthogonal
 if strcmp(side, 'L'); NeckOrthogonal(4:6)=-NeckOrthogonal(4:6); end
 LMIdx.NeckOrthogonal = lineToVertexIndices(NeckOrthogonal, femur);
