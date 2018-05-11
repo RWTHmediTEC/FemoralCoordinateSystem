@@ -31,8 +31,8 @@ FemoralMidLine=createLine3d(ICN, P1);
 PosteriorCondyleAxis = createLine3d(MPC, LPC);
 
 Z = normalizeVector3d(FemoralMidLine(4:6));
-Y = normalizeVector3d(vectorCross3d(FemoralMidLine(4:6), PosteriorCondyleAxis(4:6)));
-X = normalizeVector3d(vectorCross3d(Y, Z));
+Y = normalizeVector3d(crossProduct3d(FemoralMidLine(4:6), PosteriorCondyleAxis(4:6)));
+X = normalizeVector3d(crossProduct3d(Y, Z));
 iTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 
 if strcmp(side, 'L')
@@ -123,8 +123,8 @@ LPC=LCMesh.vertices(LPC_Idx,:);
 % Construct the rotation into the most posterior points
 PosteriorCondyleAxis=createLine3d(MPC, LPC);
 Z = [0 0 1];
-Y = normalizeVector3d(vectorCross3d(Z, PosteriorCondyleAxis(4:6)));
-X = normalizeVector3d(vectorCross3d(Y, Z));
+Y = normalizeVector3d(crossProduct3d(Z, PosteriorCondyleAxis(4:6)));
+X = normalizeVector3d(crossProduct3d(Y, Z));
 ROT = [[X; Y; Z; 0 0 0], [0 0 0 1]'];
 
 end

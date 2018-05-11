@@ -1,4 +1,4 @@
-function TFM = femoralCS_Wu2002(femur, side, HJC, MEC, LEC, varargin)
+function TFM = Wu2002(femur, side, HJC, MEC, LEC, varargin)
 
 % inputs
 p = inputParser;
@@ -19,9 +19,9 @@ CondyleAxis = createLine3d(MEC, LEC);
 
 Y = normalizeVector3d(MechanicalAxis(4:6));
 
-X = normalizeVector3d(vectorCross3d(MechanicalAxis(4:6), CondyleAxis(4:6)));
+X = normalizeVector3d(crossProduct3d(MechanicalAxis(4:6), CondyleAxis(4:6)));
 
-Z = normalizeVector3d(vectorCross3d(X, Y));
+Z = normalizeVector3d(crossProduct3d(X, Y));
 
 TFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 

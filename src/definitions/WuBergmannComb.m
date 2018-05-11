@@ -21,8 +21,8 @@ MechanicalAxis = createLine3d(ICN, HJC);
 PosteriorCondyleAxis = createLine3d(MPC, LPC);
 
 Y = normalizeVector3d(MechanicalAxis(4:6));
-X = normalizeVector3d(vectorCross3d(MechanicalAxis(4:6), PosteriorCondyleAxis(4:6)));
-Z = normalizeVector3d(vectorCross3d(X, Y));
+X = normalizeVector3d(crossProduct3d(MechanicalAxis(4:6), PosteriorCondyleAxis(4:6)));
+Z = normalizeVector3d(crossProduct3d(X, Y));
 iTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 
 if strcmp(side, 'L')
@@ -106,8 +106,8 @@ LPC=LCMesh.vertices(LPC_Idx,:);
 % Construct the rotation into the most posterior points
 PosteriorCondyleAxis=createLine3d(MPC, LPC);
 Y = [0 1 0];
-X = normalizeVector3d(vectorCross3d(Y, PosteriorCondyleAxis(4:6)));
-Z = normalizeVector3d(vectorCross3d(X, Y));
+X = normalizeVector3d(crossProduct3d(Y, PosteriorCondyleAxis(4:6)));
+Z = normalizeVector3d(crossProduct3d(X, Y));
 ROT = [[X; Y; Z; 0 0 0], [0 0 0 1]'];
 
 end
