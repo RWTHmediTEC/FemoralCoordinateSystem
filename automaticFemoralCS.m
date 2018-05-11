@@ -29,8 +29,8 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
-% VERSION: 1.0.1
-% DATE: 2018-05-02
+% VERSION: 1.0.2
+% DATE: 2018-05-11
 
 addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'src']));
 addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'res']));
