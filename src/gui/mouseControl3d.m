@@ -1,26 +1,23 @@
 function mouseControl3d(varargin)
-% This function MOUSE3D enables mouse camera control on an certain figure
-% axes. 
+% MOUSECONTROL3D enables mouse camera control on an certain figure axes.
 %
-% Enable mouse control with mouse3d(axis-handle) or just mouse3d 
-%
+% Enable mouse control just with mouseControl3d or mouseControl3d(HANDLE)
 %
 % MouseButtons
-%  Left : Rotate
-%  Right : Zoom
-%  Center : Pan
+%  Wheel click : Rotate
+%  Wheel scroll: Zoom
+%  Right click : Pan
 % Keys
-%  'r' : Change mouse rotation from inplane to outplane
-%  'i' : Go back to initial view
+%  'r' : Change mouse rotation mode from inplane to outplane
 %
 % Example,
 %   [X,Y,Z] = peaks(30);
 %   surf(X,Y,Z)
 %   colormap hsv
 %   % Enable mouse control
-%   mouse3d
+%   mouseControl3d
 %
-% Function is written by D.Kroon University of Twente (July 2010)
+% Original function was written by D.Kroon University of Twente (July 2010)
 
 if(nargin<1)
     handle=gca;
@@ -38,21 +35,13 @@ end
 handles.figure1=get(handle,'Parent');
 handles.axes1=handle;
 
-mouse3d_OpeningFcn(gcf, handles, varargin);
+mouseControl3d_OpeningFcn(gcf, handles, varargin);
 
-% --- Executes just before mouse3d is made visible.
-function mouse3d_OpeningFcn(hObject, handles, addinarg)
-% This function has no output args, see OutputFcn.
-% hObject    handle to figure
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-% varargin   command line arguments to mouse3d (see VARARGIN)
+function mouseControl3d_OpeningFcn(hObject, handles, addinarg)
 
 % Choose default command line output for mouse3d
 handles.output = hObject;
 
-% UIWAIT makes mouse3d wait for user response (see UIRESUME)
-% uiwait(handles.figure1);
 data.mouse_position_pressed=[0 0];
 data.mouse_position=[0 0];
 data.mouse_position_last=[0 0];
@@ -81,11 +70,11 @@ setViewMatrix()
 function setViewMatrix()
 data=getMyData; if(isempty(data)), return, end
 Mview=data.Mview;
-UpVector=Mview(1,1:3); 
+UpVector=Mview(1,1:3);
 Camtar=[0 0 0];
 XYZ=Mview(2,1:3);
 Forward=Mview(3,1:3);
-    
+
 UpVector=cross(cross(UpVector,Forward),UpVector);
 trans2=Mview(1:3,1:3)\data.trans(:);
 
@@ -139,7 +128,7 @@ axis([-1 1 -1 1 -1 1]*data.scale + [...
     data.center(1) data.center(1)...
     data.center(2) data.center(2)...
     data.center(3) data.center(3)]);
-drawnow
+
 xlabel X; ylabel Y, zlabel Z;
 set(data.handles.axes1,'CameraPositionMode','manual');
 set(data.handles.axes1,'CameraUpVectorMode','manual');
@@ -152,166 +141,159 @@ set(get(data.handles.axes1,'Children'),'ButtonDownFcn',@axes1_ButtonDownFcn);
 set(data.handles.axes1,'ButtonDownFcn',@axes1_ButtonDownFcn);
 setViewMatrix()
 
-function figure1_WindowButtonMotionFcn(hObject, eventdata)
+function figure1_WindowButtonMotionFcn(~, ~)
 cursor_position_in_axes();
 data=getMyData(); if(isempty(data)), return, end
 if(data.firsttime)
     data.firsttime=false; setMyData(data);
-    setWindow();   
+    setWindow();
 end
 
 if(data.mouse_pressed)
     t1=(data.mouse_position_last(1)-data.mouse_position(1));
     t2=(data.mouse_position_last(2)-data.mouse_position(2));
     switch(data.mouse_button)
-    case 'rotate1'
-        R=RotationMatrix([-t2 0 -t1]);
-        data.Mview=R*data.Mview;
-        setMyData(data);
-        setViewMatrix()
-    case 'rotate2'
-        R=RotationMatrix([0 0.5*(t1+t2) 0]);
-        data.Mview=R*data.Mview;
-        setMyData(data);
-        setViewMatrix()
-    case 'pan'
-        data.trans=data.trans+[-t1/100 0 t2/100];
-        setMyData(data);
-        setViewMatrix()
-    case 'zoom'
-        z=1-t2/100;
-        R=ResizeMatrix([z z z]); 
-        data.Mview=R*data.Mview;
-        setMyData(data);
-        setViewMatrix()
-    otherwise
+        case 'rotate1'
+            R=RotationMatrix([-t2 0 -t1]);
+            data.Mview=R*data.Mview;
+            setMyData(data);
+            setViewMatrix()
+        case 'rotate2'
+            R=RotationMatrix([0 0.5*(t1+t2) 0]);
+            data.Mview=R*data.Mview;
+            setMyData(data);
+            setViewMatrix()
+        case 'pan'
+            data.trans=data.trans+[-t1/300 0 t2/300];
+            setMyData(data);
+            setViewMatrix()
+            % case 'zoom'
+            %     z=1-t2/100;
+            %     R=ResizeMatrix([z z z]);
+            %     data.Mview=R*data.Mview;
+            %     setMyData(data);
+            %     setViewMatrix()
+        otherwise
     end
 end
 
 function R=RotationMatrix(r)
 % Determine the rotation matrix (View matrix) for rotation angles xyz ...
-    Rx=[1 0 0 0; 0 cosd(r(1)) -sind(r(1)) 0; 0 sind(r(1)) cosd(r(1)) 0; 0 0 0 1];
-    Ry=[cosd(r(2)) 0 sind(r(2)) 0; 0 1 0 0; -sind(r(2)) 0 cosd(r(2)) 0; 0 0 0 1];
-    Rz=[cosd(r(3)) -sind(r(3)) 0 0; sind(r(3)) cosd(r(3)) 0 0; 0 0 1 0; 0 0 0 1];
-    R=Rx*Ry*Rz;
-    
-function M=ResizeMatrix(s)
-	M=[1/s(1) 0 0 0;
-	   0 1/s(2) 0 0;
-	   0 0 1/s(3) 0;
-	   0 0 0 1];
+Rx=[1 0 0 0; 0 cosd(r(1)) -sind(r(1)) 0; 0 sind(r(1)) cosd(r(1)) 0; 0 0 0 1];
+Ry=[cosd(r(2)) 0 sind(r(2)) 0; 0 1 0 0; -sind(r(2)) 0 cosd(r(2)) 0; 0 0 0 1];
+Rz=[cosd(r(3)) -sind(r(3)) 0 0; sind(r(3)) cosd(r(3)) 0 0; 0 0 1 0; 0 0 0 1];
+R=Rx*Ry*Rz;
 
-function axes1_ButtonDownFcn(hObject, eventdata)
+% function M=ResizeMatrix(s)
+% M=[ 1/s(1) 0 0 0;
+%     0 1/s(2) 0 0;
+%     0 0 1/s(3) 0;
+%     0 0 0 1];
+
+function axes1_ButtonDownFcn(~, ~)
 data=getMyData(); if(isempty(data)), return, end
 handles=data.handles;
 data.mouse_pressed=true;
 data.mouse_button=get(handles.figure1,'SelectionType');
 data.mouse_position_pressed=data.mouse_position;
-if(strcmp(data.mouse_button,'extend'))
-    if(data.mouse_rotate)
-        data.mouse_button='rotate1';
-        set_mouse_shape('rotate1',data);
-        
-    else
-        data.mouse_button='rotate2';
-        set_mouse_shape('rotate2',data);       
-    end
+switch data.mouse_button
+    case 'normal'
+        disp('Left mouse button is not assigned')
+    case 'extend'
+        if(data.mouse_rotate)
+            data.mouse_button='rotate1';
+            set_mouse_shape('rotate1',data);
+        else
+            data.mouse_button='rotate2';
+            set_mouse_shape('rotate2',data);
+        end
+    case 'alt'
+        data.mouse_button='pan';
+        set_mouse_shape('pan',data);
+    case 'open'
+        disp('Double mouse click is not assigned')
+    otherwise
+        disp('Mouse event is not assigned')
 end
-if(strcmp(data.mouse_button,'open'))
-end
-if(strcmp(data.mouse_button,'alt'))
-    data.mouse_button='pan';
-    set_mouse_shape('pan',data);
-end
-%¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯¯
-% If left mouse is clicked 
-if(strcmp(data.mouse_button, 'normal'))
-    disp('Left mouse button is not assigned')
-end
-%__________________________________________________________________________
 setMyData(data);
 
 
 function data=loadmousepointershapes(data)
-I=[0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0; 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0;
- 0 0 0 0 0 0 0 1 1 1 1 0 0 0 0 0; 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 0;
- 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0;
- 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 1 0 0 0 1 1 1 1 0 0 0 0 0 0;
- 0 1 1 1 1 1 0 1 0 0 1 1 1 1 1 1; 1 1 1 1 0 0 0 1 0 0 0 0 0 0 1 1;
- 1 1 1 1 0 0 0 1 0 0 0 0 0 1 1 1; 1 0 0 0 0 0 0 0 1 0 1 0 0 0 1 1;
- 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 1; 0 0 0 0 0 0 0 1 1 1 1 0 0 0 0 0;
- 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0];
+I =[0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 0; 0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0;
+    0 0 0 0 0 0 0 1 1 1 1 0 0 0 0 0; 0 0 0 0 0 0 0 1 1 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 1 0 0 0 1 1 1 1 0 0 0 0 0 0;
+    0 1 1 1 1 1 0 1 0 0 1 1 1 1 1 1; 1 1 1 1 0 0 0 1 0 0 0 0 0 0 1 1;
+    1 1 1 1 0 0 0 1 0 0 0 0 0 1 1 1; 1 0 0 0 0 0 0 0 1 0 1 0 0 0 1 1;
+    0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 1; 0 0 0 0 0 0 0 1 1 1 1 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 1 1 1 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0];
 I(I==0)=NaN; data.icon_mouse_rotate1=I;
-I=[1 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0; 1 1 0 1 1 1 1 1 1 1 1 1 1 0 0 0;
- 1 1 1 1 1 1 0 0 0 0 0 1 1 1 0 0; 1 0 0 1 1 0 0 0 0 0 0 0 0 1 0 0;
- 1 0 0 1 1 0 0 0 0 0 0 0 0 1 0 0; 1 0 0 1 1 1 0 0 0 0 0 0 0 0 0 0;
- 1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
- 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1;
- 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 1 1 0 0 1;
- 0 0 1 0 0 0 0 0 0 0 0 1 1 0 0 1; 0 0 1 1 1 0 0 0 0 0 1 1 1 1 1 1;
- 0 0 0 1 1 1 1 1 1 1 1 1 1 0 1 1; 0 0 0 0 0 1 1 1 1 1 1 0 0 0 0 1]; 
+I =[1 0 0 0 0 1 1 1 1 1 1 0 0 0 0 0; 1 1 0 1 1 1 1 1 1 1 1 1 1 0 0 0;
+    1 1 1 1 1 1 0 0 0 0 0 1 1 1 0 0; 1 0 0 1 1 0 0 0 0 0 0 0 0 1 0 0;
+    1 0 0 1 1 0 0 0 0 0 0 0 0 1 0 0; 1 0 0 1 1 1 0 0 0 0 0 0 0 0 0 0;
+    1 1 1 1 1 1 1 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1;
+    0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 1; 0 0 1 0 0 0 0 0 0 0 0 1 1 0 0 1;
+    0 0 1 0 0 0 0 0 0 0 0 1 1 0 0 1; 0 0 1 1 1 0 0 0 0 0 1 1 1 1 1 1;
+    0 0 0 1 1 1 1 1 1 1 1 1 1 0 1 1; 0 0 0 0 0 1 1 1 1 1 1 0 0 0 0 1];
 I(I==0)=NaN; data.icon_mouse_rotate2=I;
-I=[0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0; 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0;
- 0 1 0 0 0 0 0 0 0 1 0 0 0 0 0 0; 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0;
- 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0; 1 0 0 1 1 1 1 1 0 0 1 0 0 0 0 0;
- 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0; 1 0 0 0 0 1 0 0 0 1 0 0 0 0 0 0;
- 0 1 0 0 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 1 0 0 0 0 1 1 1 1 0 0 0 0 0;
- 0 0 0 1 1 1 1 0 0 1 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0;
- 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0;
- 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1];
+I =[0 0 0 1 1 1 1 1 0 0 0 0 0 0 0 0; 0 0 1 0 0 0 0 0 1 0 0 0 0 0 0 0;
+    0 1 0 0 0 0 0 0 0 1 0 0 0 0 0 0; 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0;
+    1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0; 1 0 0 1 1 1 1 1 0 0 1 0 0 0 0 0;
+    1 0 0 0 0 1 0 0 0 0 1 0 0 0 0 0; 1 0 0 0 0 1 0 0 0 1 0 0 0 0 0 0;
+    0 1 0 0 0 0 0 0 0 1 0 0 0 0 0 0; 0 0 1 0 0 0 0 1 1 1 1 0 0 0 0 0;
+    0 0 0 1 1 1 1 0 0 1 1 1 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0 0;
+    0 0 0 0 0 0 0 0 0 0 0 1 1 1 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1 0;
+    0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 1; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1];
 I(I==0)=NaN; data.icon_mouse_zoom=I;
-I=[0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 0;
- 0 0 0 0 0 1 1 0 1 1 0 0 0 0 0 0; 0 0 0 0 0 1 0 1 0 1 0 0 0 0 0 0;
- 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 1 1 0 0 0 1 0 0 0 1 1 0 0 0;
- 0 1 1 0 0 0 0 1 0 0 0 0 1 1 0 0; 1 0 0 1 1 1 1 1 1 1 1 1 0 0 1 0;
- 0 1 1 0 0 0 0 1 0 0 0 0 1 1 0 0; 0 0 1 1 0 0 0 1 0 0 0 1 1 0 0 0;
- 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 1 0 1 0 1 0 0 0 0 0 0;
- 0 0 0 0 0 1 1 0 1 1 0 0 0 0 0 0; 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 0;
- 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
+I =[0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 0;
+    0 0 0 0 0 1 1 0 1 1 0 0 0 0 0 0; 0 0 0 0 0 1 0 1 0 1 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 1 1 0 0 0 1 0 0 0 1 1 0 0 0;
+    0 1 1 0 0 0 0 1 0 0 0 0 1 1 0 0; 1 0 0 1 1 1 1 1 1 1 1 1 0 0 1 0;
+    0 1 1 0 0 0 0 1 0 0 0 0 1 1 0 0; 0 0 1 1 0 0 0 1 0 0 0 1 1 0 0 0;
+    0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 1 0 1 0 1 0 0 0 0 0 0;
+    0 0 0 0 0 1 1 0 1 1 0 0 0 0 0 0; 0 0 0 0 0 0 1 0 1 0 0 0 0 0 0 0;
+    0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0; 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0];
 I(I==0)=NaN; data.icon_mouse_pan=I;
 
 function set_mouse_shape(type,data)
 switch(type)
-case 'rotate1'
-    set(gcf,'Pointer','custom','PointerShapeCData',data.icon_mouse_rotate1,'PointerShapeHotSpot',round(size(data.icon_mouse_rotate1)/2))
-    set(data.handles.figure1,'Pointer','custom');
-case 'rotate2'
-    set(gcf,'Pointer','custom','PointerShapeCData',data.icon_mouse_rotate2,'PointerShapeHotSpot',round(size(data.icon_mouse_rotate2)/2))
-    set(data.handles.figure1,'Pointer','custom');
-case 'select_distance'
-    set(data.handles.figure1,'Pointer','crosshair')
-case 'select_landmark'
-    set(data.handles.figure1,'Pointer','crosshair')
-case 'select_roi'
-    set(data.handles.figure1,'Pointer','crosshair')
-case 'normal'
-    set(data.handles.figure1,'Pointer','arrow')
-case 'alt'
-    set(data.handles.figure1,'Pointer','arrow')
-case 'open'
-    set(data.handles.figure1,'Pointer','arrow')
-case 'zoom'
-    set(gcf,'Pointer','custom','PointerShapeCData',data.icon_mouse_zoom,'PointerShapeHotSpot',round(size(data.icon_mouse_zoom)/2))
-    set(data.handles.figure1,'Pointer','custom');
-case 'pan'
-    set(gcf,'Pointer','custom','PointerShapeCData',data.icon_mouse_pan,'PointerShapeHotSpot',round(size(data.icon_mouse_pan)/2))
-    set(data.handles.figure1,'Pointer','custom');
-otherwise
-    set(data.handles.figure1,'Pointer',type);
+    case 'rotate1'
+        set(gcf,'Pointer','custom','PointerShapeCData',...
+            data.icon_mouse_rotate1,'PointerShapeHotSpot',...
+            round(size(data.icon_mouse_rotate1)/2))
+        set(data.handles.figure1,'Pointer','custom');
+    case 'rotate2'
+        set(gcf,'Pointer','custom','PointerShapeCData',...
+            data.icon_mouse_rotate2,'PointerShapeHotSpot',...
+            round(size(data.icon_mouse_rotate2)/2))
+        set(data.handles.figure1,'Pointer','custom');
+    case 'zoom'
+        set(gcf,'Pointer','custom','PointerShapeCData',...
+            data.icon_mouse_zoom,'PointerShapeHotSpot',...
+            round(size(data.icon_mouse_zoom)/2))
+        set(data.handles.figure1,'Pointer','custom');
+    case 'pan'
+        set(gcf,'Pointer','custom','PointerShapeCData',...
+            data.icon_mouse_pan,'PointerShapeHotSpot',...
+            round(size(data.icon_mouse_pan)/2))
+        set(data.handles.figure1,'Pointer','custom');
+    otherwise
+        set(data.handles.figure1,'Pointer',type);
 end
 
-% --- Executes on mouse press over figure background, over a disabled or
-% --- inactive control, or over an axes background.
-function figure1_WindowButtonUpFcn(hObject, eventdata)
+% Executes on mouse press over figure background, over a disabled or
+% inactive control, or over an axes background.
+function figure1_WindowButtonUpFcn(~, ~)
 data=getMyData(); if(isempty(data)), return, end
 if(data.mouse_pressed)
     data.mouse_pressed=false;
     setMyData(data);
 end
 set_mouse_shape('arrow',data)
-    
+
 function cursor_position_in_axes()
-data=getMyData(); if(isempty(data)), return, end;
+data=getMyData(); if(isempty(data)), return, end
 data.mouse_position_last=data.mouse_position;
 p = get(0, 'PointerLocation');
 data.mouse_position=[p(1, 1) p(1, 2)];
@@ -325,24 +307,34 @@ function data=getMyData()
 % Get data struct stored in figure
 data=getappdata(gcf,'data3d');
 
-% --- Executes on key press with focus on figure1 and none of its controls.
-function figure1_KeyPressFcn(hObject, eventdata)
+% Executes on key press with focus on figure1 and none of its controls.
+function figure1_KeyPressFcn(~, eventdata)
+data=getMyData();
 % determine the key that was pressed
-keyPressed = eventdata.Key;
-if strcmpi(keyPressed,'space')
-    disp('Space key is not assigned')
+keyPressed = lower(eventdata.Key);
+switch keyPressed
+    case 'space'
+        disp('Space key is not assigned')
+    case 'r'
+        data.mouse_rotate=~data.mouse_rotate;
+        setMyData(data)
 end
 
-% --- Executes on scroll wheel with focus on figure1 and none of its controls.
-function figure1_WindowScrollWheelFcn(~,evnt)
-if evnt.VerticalScrollCount > 0
+% Executes on scroll wheel with focus on figure1 and none of its controls.
+function figure1_WindowScrollWheelFcn(~,eventdata)
+data=getMyData(); if(isempty(data)), return, end
+set_mouse_shape('zoom',data);
+
+if eventdata.VerticalScrollCount > 0
     CVA_old = get(gca,'CameraViewAngle');
-    CVA_new = CVA_old + 1;
+    CVA_new = CVA_old + 5;
     set(gca,'CameraViewAngle',CVA_new)
-        drawnow
-elseif evnt.VerticalScrollCount < 0
+    drawnow
+elseif eventdata.VerticalScrollCount < 0
     CVA_old = get(gca,'CameraViewAngle');
-    CVA_new = CVA_old - 1;
+    CVA_new = CVA_old - 5;
     set(gca,'CameraViewAngle',CVA_new)
-        drawnow
+    drawnow
 end
+
+set_mouse_shape('arrow',data)
