@@ -59,6 +59,6 @@ if visu
     edgeProps.MarkerFaceColor='k';
     drawEdge3d([transformPoint3d(MEC,TFM),transformPoint3d(LEC,TFM)],edgeProps)
     
-    viewButtonsASR
+    medicalViewButtons('ASR')
 end
 end

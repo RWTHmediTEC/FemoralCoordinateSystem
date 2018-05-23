@@ -108,7 +108,7 @@ if visu
         femurCS.vertices(MPC_Idx,:),...
         femurCS.vertices(LPC_Idx,:), edgeProps)
     
-    viewButtonsRAS
+    medicalViewButtons('RAS')
 end
 end
 

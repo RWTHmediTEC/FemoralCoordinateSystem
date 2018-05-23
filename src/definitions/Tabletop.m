@@ -132,7 +132,7 @@ if visu
     
     drawLine3d(transformLine3d(NeckAxis, TFM))
     
-    viewButtonsRAS
+    medicalViewButtons('RAS')
 end
 
 end

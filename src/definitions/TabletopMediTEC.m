@@ -154,7 +154,7 @@ if visu
     
     text(textPosX,textPosY,textPosZ,'Tabletop plane','Rotation',90)
     
-    viewButtonsRAS
+    medicalViewButtons('RAS')
 end
 
 end
