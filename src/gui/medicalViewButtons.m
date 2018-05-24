@@ -25,33 +25,40 @@ FontPropsA.FontSize = 0.8;
 % Rotate-buttons
 switch mode
     case 'RAS'
-        mouseControl3d(hAx)
-        uicontrol('Units','normalized','Position',[0.5-BSX*3/2 0.01+BSY BSX BSY],FontPropsA,...
-            'String','Left','Callback','mouseControl3d(gca, [0 1 0 0; -1 0 0 0; 0 0 1 0; 0 0 0 1])');
-        uicontrol('Units','normalized','Position',[0.5-BSX*3/2     0.01 BSX BSY],FontPropsA,...
-            'String','Right','Callback','mouseControl3d(gca, [0 -1 0 0; 1 0 0 0; 0 0 1 0; 0 0 0 1])');
-        uicontrol('Units','normalized','Position',[0.5-BSX*1/2 0.01+BSY BSX BSY],FontPropsA,...
-            'String','Anterior','Callback','mouseControl3d(gca, [1 0 0 0;0 1 0 0; 0 0 1 0; 0 0 0 1])');
-        uicontrol('Units','normalized','Position',[0.5-BSX*1/2     0.01 BSX BSY],FontPropsA,...
-            'String','Posterior','Callback','mouseControl3d(gca, [-1 0 0 0;0 -1 0 0; 0 0 1 0; 0 0 0 1])');
-        uicontrol('Units','normalized','Position',[0.5+BSX*1/2 0.01+BSY BSX BSY],FontPropsA,...
-            'String','Superior','Callback','mouseControl3d(gca, [1 0 0 0;0 0 1 0; 0 -1 0 0; 0 0 0 1])');
-        uicontrol('Units','normalized','Position',[0.5+BSX*1/2     0.01 BSX BSY],FontPropsA,...
-            'String','Inferior','Callback','mouseControl3d(gca, [-1 0 0 0;0 0 -1 0; 0 -1 0 0; 0 0 0 1])');
+        MC3D(:,:,1)=[0 1 0 0; -1 0 0 0; 0 0 1 0; 0 0 0 1];
+        MC3D(:,:,2)=[0 -1 0 0; 1 0 0 0; 0 0 1 0; 0 0 0 1];
+        MC3D(:,:,3)=[1 0 0 0;0 1 0 0; 0 0 1 0; 0 0 0 1];
+        MC3D(:,:,4)=[-1 0 0 0;0 -1 0 0; 0 0 1 0; 0 0 0 1];
+        MC3D(:,:,5)=[1 0 0 0;0 0 1 0; 0 -1 0 0; 0 0 0 1];
+        MC3D(:,:,6)=[1 0 0 0;0 0 -1 0; 0 1 0 0; 0 0 0 1];
     case 'ASR'
-        mouseControl3d(hAx, [0 0 1 0; 1 0 0 0; 0 1 0 0; 0 0 0 1])
-        uicontrol('Units','normalized','Position',[0.5-BSX*3/2     0.01 BSX BSY],FontPropsA,...
-            'String','Posterior','Callback','mouseControl3d(gca, [0 0 -1 0; -1 0 0 0; 0 1 0 0; 0 0 0 1])');
-        uicontrol('Units','normalized','Position',[0.5-BSX*3/2 0.01+BSY BSX BSY],FontPropsA,...
-            'String','Anterior','Callback','mouseControl3d(gca, [0 0 1 0; 1 0 0 0; 0 1 0 0; 0 0 0 1])');
-        uicontrol('Units','normalized','Position',[0.5-BSX*1/2 0.01+BSY BSX BSY],FontPropsA,...
-            'String','Superior','Callback','mouseControl3d(gca, [0 0 1 0;0 1 0 0; -1 0 0 0; 0 0 0 1])');
-        uicontrol('Units','normalized','Position',[0.5-BSX*1/2     0.01 BSX BSY],FontPropsA,...
-            'String','Inferior','Callback','mouseControl3d(gca, [0 0 1 0;0 -1 0 0; 1 0 0 0; 0 0 0 1])');
-        uicontrol('Units','normalized','Position',[0.5+BSX*1/2 0.01+BSY BSX BSY],FontPropsA,...
-            'String','Left','Callback','mouseControl3d(gca, [1 0 0 0;0 0 -1 0; 0 1 0 0; 0 0 0 1])');
-        uicontrol('Units','normalized','Position',[0.5+BSX*1/2     0.01 BSX BSY],FontPropsA,...
-            'String','Right','Callback','mouseControl3d(gca, [-1 0 0 0;0 0 1 0; 0 1 0 0; 0 0 0 1])');
+        MC3D(:,:,1)=[1 0 0 0;0 0 -1 0; 0 1 0 0; 0 0 0 1];
+        MC3D(:,:,2)=[-1 0 0 0;0 0 1 0; 0 1 0 0; 0 0 0 1];
+        MC3D(:,:,3)=[0 0 1 0; 1 0 0 0; 0 1 0 0; 0 0 0 1];
+        MC3D(:,:,4)=[0 0 -1 0; -1 0 0 0; 0 1 0 0; 0 0 0 1];
+        MC3D(:,:,5)=[0 0 1 0;0 1 0 0; -1 0 0 0; 0 0 0 1];
+        MC3D(:,:,6)=[0 0 1 0;0 -1 0 0; 1 0 0 0; 0 0 0 1];
+    case 'SRA'
+         MC3D(:,:,1)=[0 0 1 0;0 -1 0 0; 1 0 0 0; 0 0 0 1];
+         MC3D(:,:,2)=[0 0 -1 0;0 1 0 0; 1 0 0 0; 0 0 0 1];
+         MC3D(:,:,3)=[0 1 0 0;0 0 1 0; 1 0 0 0; 0 0 0 1];
+         MC3D(:,:,4)=[0 -1 0 0;0 0 -1 0; 1 0 0 0; 0 0 0 1];
+         MC3D(:,:,5)=[0 1 0 0; 1 0 0 0; 0 0 -1 0; 0 0 0 1];
+         MC3D(:,:,6)=[0 1 0 0; -1 0 0 0; 0 0 1 0; 0 0 0 1];
 end
+
+mouseControl3d(hAx,MC3D(:,:,3))
+uicontrol('Units','normalized','Position',[0.5-BSX*3/2 0.01+BSY BSX BSY],FontPropsA,...
+    'String','Left',     'Callback',@(s,e) mouseControl3d(gca, MC3D(:,:,1)));
+uicontrol('Units','normalized','Position',[0.5-BSX*3/2     0.01 BSX BSY],FontPropsA,...
+    'String','Right',    'Callback',@(s,e) mouseControl3d(gca, MC3D(:,:,2)));
+uicontrol('Units','normalized','Position',[0.5-BSX*1/2 0.01+BSY BSX BSY],FontPropsA,...
+    'String','Anterior', 'Callback',@(s,e) mouseControl3d(gca, MC3D(:,:,3)));
+uicontrol('Units','normalized','Position',[0.5-BSX*1/2     0.01 BSX BSY],FontPropsA,...
+    'String','Posterior','Callback',@(s,e) mouseControl3d(gca, MC3D(:,:,4)));
+uicontrol('Units','normalized','Position',[0.5+BSX*1/2 0.01+BSY BSX BSY],FontPropsA,...
+    'String','Superior', 'Callback',@(s,e) mouseControl3d(gca, MC3D(:,:,5)));
+uicontrol('Units','normalized','Position',[0.5+BSX*1/2     0.01 BSX BSY],FontPropsA,...
+    'String','Inferior', 'Callback',@(s,e) mouseControl3d(gca, MC3D(:,:,6)));
 
 end

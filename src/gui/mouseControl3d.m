@@ -1,29 +1,34 @@
 function mouseControl3d(varargin)
-% MOUSECONTROL3D enables mouse camera control on an certain figure axes.
+%MOUSECONTROL3D enables mouse camera control on an certain figure axes.
 %
-% Enable mouse control just with mouseControl3d or mouseControl3d(HANDLE)
+%   mouseControl3d enables mouse control on the current axes: 
+%       Mouse:
+%           Wheel click : Rotate
+%           Wheel scroll: Zoom
+%           Right click : Pan
+%       Keys:
+%           r : Change mouse rotation mode from inplane to outplane
 %
-% MouseButtons
-%  Wheel click : Rotate
-%  Wheel scroll: Zoom
-%  Right click : Pan
-% Keys
-%  'r' : Change mouse rotation mode from inplane to outplane
+%   Example
+%       [X,Y,Z] = peaks(30);
+%       surf(X,Y,Z)
+%       colormap hsv
+%       mouseControl3d
 %
-% Example,
-%   [X,Y,Z] = peaks(30);
-%   surf(X,Y,Z)
-%   colormap hsv
-%   % Enable mouse control
-%   mouseControl3d
+%   Source:
+%       mouse3d - version 1.0 (3.8 KB) by Dirk-Jan Kroon:
+%       https://www.mathworks.com/matlabcentral/fileexchange/28095
 %
-% Original function was written by D.Kroon University of Twente (July 2010)
+% ---------
+% Author: Dirk-Jan Kroon, University of Twente (source), oqilipo (rework)
+% Created: 2010-07
 
 if(nargin<1)
     handle=gca;
 else
     handle=varargin{1};
-    if(ishandle(handle))
+    % Check if first argument is a handle
+    if ishandle(handle)
         if(~strcmpi(get(handle,'Type'),'axes'))
             error('mouse3d:input','no valid axis handle');
         end
