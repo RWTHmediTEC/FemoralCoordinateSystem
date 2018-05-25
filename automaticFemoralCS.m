@@ -124,11 +124,21 @@ if debugVisu
     patch(femurPreReg, patchProps)
 end
 
+% Register femoral condyles
+femurCondReg.vertices = regFemoralCondyles(template.vertices, femurPreReg.vertices);
+femurCondReg.faces = femurPreReg.faces;
+if debugVisu
+    % The femur in the ... CS
+    patchProps.FaceColor = 'w';
+    patch(femurCondReg, patchProps)
+end
+
+
 % Adapt femoral version of the template
-templatePreReg.vertices = adjustTemplateFemoralVersion(template.vertices, femurPreReg.vertices);
+templatePreReg.vertices = adjustTemplateFemoralVersion(template.vertices, femurCondReg.vertices);
 templatePreReg.faces = template.faces;
 if debugVisu
-    % The femur in the pre-registration CS
+    % The template in the ... CS
     patchProps.FaceColor = 'm';
     patch(templatePreReg, patchProps)
 end
@@ -136,7 +146,7 @@ end
 % non-rigid ICP registration - mediTEC implementation
 disp('____________ Morphing of the template mesh to the target _____________')
 NRICP_ALPHA = [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]';
-templateNICP = nonRigidICP(templatePreReg, femurPreReg, ...
+templateNICP = nonRigidICP(templatePreReg, femurCondReg, ...
     'alpha', NRICP_ALPHA,...
     'verbosity', double(verb));
 if debugVisu
@@ -146,13 +156,13 @@ if debugVisu
 end
 
 % Mapping of landmarks and areas of the template to the source
-femurPreRegKDTree=createns(femurPreReg.vertices);
+femurCondRegKDTree=createns(femurCondReg.vertices);
 % Landmarks
 load('template_landmarks.mat','landmarks')
 % Search the nearest neighbour of the landmarks on the NICP registered 
 % template to the vertices of the pre-registered femur. Return vertex
 % indices.
-landmarksIdx = knnsearch(femurPreRegKDTree, ...
+landmarksIdx = knnsearch(femurCondRegKDTree, ...
     templateNICP.vertices(cell2mat(struct2cell(landmarks)),:));
 LMNames = fieldnames(landmarks);
 for lm=1:length(landmarksIdx)
@@ -173,7 +183,7 @@ for a=1:size(areas,1)
     % Search the nearest neighbour of the landmarks on the NICP registered
     % template to the vertices of the pre-registered femur. Return vertex
     % indices.
-    areas{a,3} = knnsearch(femurPreRegKDTree, tempVertices);
+    areas{a,3} = knnsearch(femurCondRegKDTree, tempVertices);
     if debugVisu
         drawPoint3d(femurInertia.vertices(areas{a,3},:),...
             'MarkerFaceColor',[0.4 .08 .08],'MarkerEdgeColor',[0.4 .08 .08])
@@ -182,7 +192,8 @@ end
 
 if debugVisu
     legend({'Source Inertia','Template','Source Scaled',...
-        'Source Pre-Registered','Template Pre-Registered','Template nICP'})
+        'Source Pre-Registered','Source Condyle-Registered',...
+        'Template Version-Registered','Template nICP'})
     mouseControl3d
 end
 

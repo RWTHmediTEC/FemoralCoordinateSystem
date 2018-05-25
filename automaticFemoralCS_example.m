@@ -6,7 +6,7 @@ clearvars; close all; opengl hardware
 load('data\F.mat')
 
 % Select example
-Idx=1;
+Idx=5;
 
 [fwTFM2AFCS, LMIdx] = automaticFemoralCS(F(Idx).mesh, F(Idx).side,...
-    'definition','TabletopMediTEC','vis', true, 'verb',true);
+    'definition','TabletopMediTEC','vis', true, 'verb',true, 'debug', true);
