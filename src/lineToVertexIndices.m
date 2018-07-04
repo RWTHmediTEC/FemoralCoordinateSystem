@@ -7,6 +7,6 @@ if linePos(1)>linePos(end)
     linePts=flipud(linePts);
     linePos=flipud(linePos);
 end
-[~, Idx] = pdist2(mesh.vertices,linePts,'euclidean','Smallest',1);
+[~, Idx] = pdist2(mesh.vertices,[linePts(1,:);linePts(end,:)],'euclidean','Smallest',1);
 
 end

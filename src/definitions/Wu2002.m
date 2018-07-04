@@ -25,9 +25,7 @@ Z = normalizeVector3d(crossProduct3d(X, Y));
 
 TFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 
-if strcmp(side, 'L')
-    TFM=createRotationOy(pi)*TFM;
-end
+if strcmp(side, 'L'); TFM=createRotationOy(pi)*TFM; end %#ok<MINV>
 
 %% visualization
 if visu

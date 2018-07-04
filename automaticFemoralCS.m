@@ -26,6 +26,8 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %   fwTFM2AFCS: Forward transformation of the femur into the femoral CS
 %   LMIdx: Landmark indices into the vertices of the femur
 %
+% TODO:
+%   Add sanity check for MEC & LEC refinement for osteophytic distal femurs
 %
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
@@ -86,7 +88,7 @@ if debugVisu
     patchProps.FaceLighting = 'gouraud';
     
     % The femur in the inertia CS
-    visualizeMeshes(femurInertia, patchProps)
+    visualizeMeshes(femurInertia, patchProps);
     hold on
 end
 
@@ -204,7 +206,7 @@ if isnan(HJC)
     Head = femur.vertices(areas{ismember(areas(:,1),'Head'),3},:);
     [HJC, Radius] = spherefit(Head); HJC=HJC';
     if debugVisu
-        visualizeMeshes(femur)
+        [~, debugAxHandle2] = visualizeMeshes(femur);
         mouseControl3d
         hold on
         drawSphere([HJC, Radius])
@@ -276,6 +278,47 @@ disp('_______________ Detection of the anatomical neck axis ________________')
 NeckAxis = ANA(femur.vertices, femur.faces, side, ...
     LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,'visu', debugVisu,'verbose',verb);
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
+
+%% Refinement of the epicondyles
+% Axis through the epicondyles in the inertia system
+CondyleAxisInertia = createLine3d(...
+    femurInertia.vertices(LMIdx.MedialEpicondyle,:),...
+    femurInertia.vertices(LMIdx.LateralEpicondyle,:));
+% Shaft axis in the inertia system
+ShaftAxisInertia=createLine3d(...
+        femurInertia.vertices(LMIdx.ShaftAxis(2),:),...
+        femurInertia.vertices(LMIdx.ShaftAxis(1),:));
+    ShaftAxisInertia(4:6)=normalizeVector3d(ShaftAxisInertia(4:6));
+
+% Cut the distal femur in the inertia system
+if CondyleAxisInertia(1)>0; cutDir=1; else; cutDir=-1; end
+distalCutPlaneInertia=createPlane([cutDir*1/4*femurInertiaLength 0 0], -ShaftAxisInertia(4:6));
+distalFemurInertia = cutMeshByPlane(femurInertia, distalCutPlaneInertia);
+
+% Transform into the USP CS
+Y = normalizeVector3d(ShaftAxisInertia(4:6));
+X = normalizeVector3d(crossProduct3d(ShaftAxisInertia(4:6), CondyleAxisInertia(4:6)));
+Z = normalizeVector3d(crossProduct3d(X, Y));
+uspInitialTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
+uspInitialRot = rotation3dToEulerAngles(uspInitialTFM);
+
+USP_TFM=USP(distalFemurInertia.vertices, distalFemurInertia.faces, side, uspInitialRot, 'visu', debugVisu,'verbose',verb);
+
+% Get indices of the epicodyles
+distalFemurUSP=transformPoint3d(distalFemurInertia, USP_TFM);
+[~, minIdx]=min(distalFemurUSP.vertices(:,3));
+[~, maxIdx]=max(distalFemurUSP.vertices(:,3));
+ecInertia=transformPoint3d(distalFemurUSP.vertices([minIdx,maxIdx],:),inv(USP_TFM));
+[~, ecIdx] = pdist2(femurInertia.vertices,ecInertia,'euclidean','Smallest',1);
+
+if strcmp(side, 'L'); flipud(ecIdx); end
+LMIdx.MedialEpicondyle=ecIdx(1); LMIdx.LateralEpicondyle=ecIdx(2);
+
+if debugVisu
+    drawPoint3d(debugAxHandle2, ...
+        femur.vertices([LMIdx.MedialEpicondyle,LMIdx.LateralEpicondyle],:),...
+        'MarkerFaceColor','r','MarkerEdgeColor','r');
+end
 
 %% Construct the femoral CS
 switch definition
