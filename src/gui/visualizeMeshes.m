@@ -31,9 +31,7 @@ H_Light(1) = light; light('Position', -1*(get(H_Light(1),'Position')));
 axis on; axis equal; hold on
 xlabel x; ylabel y; zlabel z;
 
-if nargout==1
-    varargout{1} = meshHandle;
-elseif nargout==2
+if nargout > 1
     varargout{1} = meshHandle;
     varargout{2} = axHandle;
     varargout{3} = figHandle;

@@ -8,6 +8,7 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %   side: 'L' or 'R': left or right femur
 %   
 % OPTIONAL INPUT:
+
 %   'HJC': 1x3 vector: Coordinates of the hip joint center in the 
 %       coordinate system (CS) of the input femur mesh
 %   'definition': The definition to construct the femoral CS
@@ -21,6 +22,7 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %       'TabletopMediTEC' - Table top method taking into account the 
 %           mechanical axis 
 %   'visualization': true (default) or false
+%   'subject': Char: Identification of the subject. Default is 'anonymous'.
 % 
 % OUTPUT:
 %   fwTFM2AFCS: Forward transformation of the femur into the femoral CS
@@ -40,7 +42,7 @@ addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'res']));
 %% Parse inputs
 p = inputParser;
 addRequired(p,'femur',@(x) isstruct(x) && isfield(x, 'vertices') && isfield(x,'faces'))
-addRequired(p,'side',@(x) any(validatestring(x,{'R','L'})));
+addRequired(p,'side',@(x) any(validatestring(upper(x(1)),{'R','L'})));
 isPoint3d = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,3]});
 addParameter(p,'HJC',nan, isPoint3d);
@@ -51,16 +53,18 @@ validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop','TabletopMediT
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validStrings)));
 addParameter(p,'visualization',true,@islogical);
 addParameter(p,'verbose',false,@islogical);
+addParameter(p,'subject','anonymous',@(x) validateattributes(x,{'char'},{'nonempty'}));
 addParameter(p,'debugVisualization',false,@islogical);
 
 parse(p,femur,side,varargin{:});
 femur = p.Results.femur;
-side = p.Results.side;
+side = upper(p.Results.side(1));
 HJC = p.Results.HJC;
 NeckAxis = p.Results.NeckAxis;
 definition = p.Results.definition;
 visu = p.Results.visualization;
 verb = p.Results.verbose;
+subject = p.Results.subject;
 debugVisu = p.Results.debugVisualization;
 
 %% Algorithm
@@ -88,7 +92,8 @@ if debugVisu
     patchProps.FaceLighting = 'gouraud';
     
     % The femur in the inertia CS
-    visualizeMeshes(femurInertia, patchProps);
+    [~, ~, debugFigH1]=visualizeMeshes(femurInertia, patchProps);
+    set(debugFigH1, 'Name', [subject ': nICP registration (Debug Figure)'], 'NumberTitle', 'Off')
     hold on
 end
 
@@ -206,7 +211,9 @@ if isnan(HJC)
     Head = femur.vertices(areas{ismember(areas(:,1),'Head'),3},:);
     [HJC, Radius] = spherefit(Head); HJC=HJC';
     if debugVisu
-        [~, debugAxHandle2] = visualizeMeshes(femur);
+        [~, debugAxH2, debugFigH2] = visualizeMeshes(femur);
+        set(debugFigH2, 'Name', [subject ': initial HJC, neck axis, ... (Debug Figure)'],...
+            'NumberTitle','Off')
         mouseControl3d
         hold on
         drawSphere([HJC, Radius])
@@ -276,7 +283,8 @@ end
 %% Refinement of the neck axis
 disp('_______________ Detection of the anatomical neck axis ________________')
 NeckAxis = ANA(femur.vertices, femur.faces, side, ...
-    LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,'visu', debugVisu,'verbose',verb);
+    LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,...
+    'visu', debugVisu,'verbose',verb,'subject', subject);
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 
 %% Refinement of the epicondyles
@@ -302,7 +310,8 @@ Z = normalizeVector3d(crossProduct3d(X, Y));
 uspInitialTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 uspInitialRot = rotation3dToEulerAngles(uspInitialTFM);
 
-USP_TFM=USP(distalFemurInertia.vertices, distalFemurInertia.faces, side, uspInitialRot, 'visu', debugVisu,'verbose',verb);
+USP_TFM=USP(distalFemurInertia.vertices, distalFemurInertia.faces, side, uspInitialRot,...
+    'visu', debugVisu,'verbose',verb, 'subject', subject);
 
 % Get indices of the epicodyles
 distalFemurUSP=transformPoint3d(distalFemurInertia, USP_TFM);
@@ -315,7 +324,7 @@ if strcmp(side, 'L'); flipud(ecIdx); end
 LMIdx.MedialEpicondyle=ecIdx(1); LMIdx.LateralEpicondyle=ecIdx(2);
 
 if debugVisu
-    drawPoint3d(debugAxHandle2, ...
+    drawPoint3d(debugAxH2, ...
         femur.vertices([LMIdx.MedialEpicondyle,LMIdx.LateralEpicondyle],:),...
         'MarkerFaceColor','r','MarkerEdgeColor','r');
 end
