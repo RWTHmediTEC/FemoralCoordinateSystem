@@ -1,5 +1,4 @@
-function [TFM, MPC_Idx, LPC_Idx] = Bergmann2016(femur, side, ...
-    HJC, MPC, LPC, ICN, NeckAxis_Idx, ShaftAxis, varargin)
+function [TFM, LMIdx] = Bergmann2016(femur, side, HJC, LMIdx, varargin)
 
 % 2016 - Bergmann et al. - Standardized Loads Acting in Hip Implants:
 %   "The origin of this coordinate system is located at the centre of the 
@@ -20,18 +19,23 @@ parse(p,femur,side,varargin{:});
 femur = p.Results.femur;
 visu = p.Results.visualization;
 
+% Landmarks
+MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
+LPC = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
+ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
+NeckAxis = createLine3d(femur.vertices(LMIdx.NeckAxis(1),:),femur.vertices(LMIdx.NeckAxis(2),:));
+ShaftAxis = createLine3d(femur.vertices(LMIdx.ShaftAxis(1),:),femur.vertices(LMIdx.ShaftAxis(2),:));
+
 %% Construction of P1
-NeckAxis = createLine3d(femur.vertices(NeckAxis_Idx(1),:),femur.vertices(NeckAxis_Idx(2),:));
-% P1
 [~, P1, ~] = distanceLines3d(NeckAxis, ShaftAxis);
-FemoralMidLine=createLine3d(ICN, P1);
+StraightFemurAxis=createLine3d(ICN, P1);
 
 %% inital transformation
 % Connection of the most posterior points of the condyles
 PosteriorCondyleAxis = createLine3d(MPC, LPC);
 
-Z = normalizeVector3d(FemoralMidLine(4:6));
-Y = normalizeVector3d(crossProduct3d(FemoralMidLine(4:6), PosteriorCondyleAxis(4:6)));
+Z = normalizeVector3d(StraightFemurAxis(4:6));
+Y = normalizeVector3d(crossProduct3d(StraightFemurAxis(4:6), PosteriorCondyleAxis(4:6)));
 X = normalizeVector3d(crossProduct3d(Y, Z));
 iTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 
@@ -70,8 +74,8 @@ TFM=refRot*iTFM;
 femurCS = transformPoint3d(femur, TFM);
 
 % Get the index of the most posterior point of the condyle
-MPC_Idx = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
-LPC_Idx = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
+LMIdx.MedialPosteriorCondyle = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
+LMIdx.LateralPosteriorCondyle = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
 
 %% visualization
 if visu
@@ -96,17 +100,17 @@ if visu
     edgeProps.LineStyle='-';
     edgeProps.Color='k';
     
-    drawEdge3d(clipLine3d(transformLine3d(FemoralMidLine, TFM),...
+    drawEdge3d(clipLine3d(transformLine3d(StraightFemurAxis, TFM),...
         boundingBox3d(femurCS.vertices)),edgeProps)
     drawEdge3d(...
-        femurCS.vertices(NeckAxis_Idx(1),:),...
-        femurCS.vertices(NeckAxis_Idx(2),:), edgeProps);
+        femurCS.vertices(LMIdx.NeckAxis(1),:),...
+        femurCS.vertices(LMIdx.NeckAxis(2),:), edgeProps);
     edgeProps.Marker='o';
     edgeProps.MarkerEdgeColor='k';
     edgeProps.MarkerFaceColor='k';
     drawEdge3d(...
-        femurCS.vertices(MPC_Idx,:),...
-        femurCS.vertices(LPC_Idx,:), edgeProps)
+        femurCS.vertices(LMIdx.MedialPosteriorCondyle,:),...
+        femurCS.vertices(LMIdx.LateralPosteriorCondyle,:), edgeProps)
     
     medicalViewButtons('RAS')
 end
