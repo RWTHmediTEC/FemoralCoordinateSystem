@@ -1,5 +1,4 @@
-function [TFM, MPC_Idx, LPC_Idx, PTC_Idx] = TabletopMediTEC(femur, side, ...
-    HJC, MPC, LPC, ICN, NeckAxis, varargin)
+function [TFM, LMIdx] = TabletopMediTEC(femur, side, HJC, LMIdx, varargin)
 
 % Y axis: Normal of the tabletop plane.
 %         Definition of the tabletop plane:
@@ -21,6 +20,13 @@ parse(p,femur,side,varargin{:});
 femur = p.Results.femur;
 visu = p.Results.visualization;
 
+%% Landmarks
+MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
+LPC = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
+ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
+NeckAxis = createLine3d(femur.vertices(LMIdx.NeckAxis(1),:),femur.vertices(LMIdx.NeckAxis(2),:));
+NeckOrthogonal = createLine3d(femur.vertices(LMIdx.NeckOrthogonal(1),:),femur.vertices(LMIdx.NeckOrthogonal(2),:));
+[~, NeckAxis(1:3), ~] = distanceLines3d(NeckAxis, NeckOrthogonal);
 
 %% Construction of an inital system
 MechanicalAxis=createLine3d(ICN, HJC);
@@ -108,6 +114,13 @@ MPC_Idx = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
 LPC_Idx = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
 PTC_Idx = find(ismembertol(femurCS.vertices, PTC,'ByRows',true'));
 
+if strcmp(side, 'L') % Switch MPC & LPC
+    MPC_Idx(2)=LPC_Idx; LPC_Idx=MPC_Idx(1); MPC_Idx(1)=[];
+end
+
+LMIdx.MedialPosteriorCondyle = MPC_Idx;
+LMIdx.LateralPosteriorCondyle = LPC_Idx;
+LMIdx.PosteriorTrochantericCrest = PTC_Idx;
 
 %% visualization
 if visu
@@ -153,6 +166,9 @@ if visu
     textPosZ=1/3*(MPC(3)+LPC(3)+PTC(3));
     
     text(textPosX,textPosY,textPosZ,'Tabletop plane','Rotation',90)
+    
+    text(tablePatch.vertices(:,1),tablePatch.vertices(:,2),tablePatch.vertices(:,3),...
+        {'MPC';'LPC';'PTC'})
     
     medicalViewButtons('RAS')
 end

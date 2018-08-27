@@ -3,13 +3,13 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %
 % REQUIRED INPUT:
 %   femur: A "clean" mesh as struct with the fields vertices and faces
-%       "Clean" means a closed outer surface without holes or tunnels, 
+%       "Clean" means a closed outer surface without holes or tunnels,
 %       normals are oriented outwards, no duplicate vertices, ...
 %   side: 'L' or 'R': left or right femur
-%   
+%
 % OPTIONAL INPUT:
 
-%   'HJC': 1x3 vector: Coordinates of the hip joint center in the 
+%   'HJC': 1x3 vector: Coordinates of the hip joint center in the
 %       coordinate system (CS) of the input femur mesh
 %   'definition': The definition to construct the femoral CS
 %       'Wu2002' - 2002 - Wu et al. - ISB recommendation on definitions
@@ -19,23 +19,22 @@ function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
 %           in Hip Implants
 %       'WuBergmannComb' - A combination of Wu2002 and Bergmann2016
 %       'Tabletop' - A combination of Murphy1987 and Bergmann2016
-%       'TabletopMediTEC' - Table top method taking into account the 
-%           mechanical axis 
+%       'TabletopMediTEC' - Table top method taking into account the
+%           mechanical axis
 %   'visualization': true (default) or false
 %   'subject': Char: Identification of the subject. Default is 'anonymous'.
-% 
+%
 % OUTPUT:
 %   fwTFM2AFCS: Forward transformation of the femur into the femoral CS
 %   LMIdx: Landmark indices into the vertices of the femur
 %
 % TODO:
-%   Add sanity check for MEC & LEC refinement for osteophytic distal femurs
 %   Add intercondylar notch refinement (ICN)
 %
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
-% VERSION: 1.0.2
-% DATE: 2018-05-11
+% VERSION: 1.0.3
+% DATE: 2018-08-24
 
 addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'src']));
 addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'res']));
@@ -62,7 +61,7 @@ femur = p.Results.femur;
 side = upper(p.Results.side(1));
 HJC = p.Results.HJC;
 NeckAxis = p.Results.NeckAxis;
-definition = p.Results.definition;
+definition = lower(p.Results.definition);
 visu = p.Results.visualization;
 verb = p.Results.verbose;
 subject = p.Results.subject;
@@ -167,7 +166,7 @@ end
 femurCondRegKDTree=createns(femurCondReg.vertices);
 % Landmarks
 load('template_landmarks.mat','landmarks')
-% Search the nearest neighbour of the landmarks on the NICP registered 
+% Search the nearest neighbour of the landmarks on the NICP registered
 % template to the vertices of the pre-registered femur. Return vertex
 % indices.
 landmarksIdx = knnsearch(femurCondRegKDTree, ...
@@ -287,6 +286,12 @@ NeckAxis = ANA(femur.vertices, femur.faces, side, ...
     LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,...
     'visu', debugVisu,'verbose',verb,'subject', subject);
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
+% Neck Orthogonal
+NeckOrthogonal(1:3) = NeckAxis(1:3);
+NeckOrthogonal(4:6) = crossProduct3d(NeckAxis(4:6), ShaftAxis(4:6));
+% Use vertex indices of the mesh to define the neck orthogonal
+if strcmp(side, 'L'); NeckOrthogonal(4:6)=-NeckOrthogonal(4:6); end
+LMIdx.NeckOrthogonal = lineToVertexIndices(NeckOrthogonal, femur);
 
 %% Refinement of the epicondyles
 disp('________________ Refinement of the epicondyles (beta) ________________')
@@ -296,79 +301,114 @@ CondyleAxisInertia = createLine3d(...
     femurInertia.vertices(LMIdx.LateralEpicondyle,:));
 % Shaft axis in the inertia system
 ShaftAxisInertia=createLine3d(...
-        femurInertia.vertices(LMIdx.ShaftAxis(2),:),...
-        femurInertia.vertices(LMIdx.ShaftAxis(1),:));
-    ShaftAxisInertia(4:6)=normalizeVector3d(ShaftAxisInertia(4:6));
+    femurInertia.vertices(LMIdx.ShaftAxis(2),:),...
+    femurInertia.vertices(LMIdx.ShaftAxis(1),:));
+ShaftAxisInertia(4:6)=normalizeVector3d(ShaftAxisInertia(4:6));
 
 % Cut the distal femur in the inertia system
 if CondyleAxisInertia(1)>0; cutDir=1; else; cutDir=-1; end
 distalCutPlaneInertia=createPlane([cutDir*1/4*femurInertiaLength 0 0], -ShaftAxisInertia(4:6));
 distalFemurInertia = cutMeshByPlane(femurInertia, distalCutPlaneInertia);
 
-% Transform into the USP CS
+% Transform into the inital USP CS
 Y = normalizeVector3d(ShaftAxisInertia(4:6));
 X = normalizeVector3d(crossProduct3d(ShaftAxisInertia(4:6), CondyleAxisInertia(4:6)));
 Z = normalizeVector3d(crossProduct3d(X, Y));
 uspInitialTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 uspInitialRot = rotation3dToEulerAngles(uspInitialTFM);
 
-USP_TFM=USP(distalFemurInertia.vertices, distalFemurInertia.faces, side, uspInitialRot,...
-    'visu', debugVisu,'verbose',verb, 'subject', subject);
+% The inertia femur is always a right femur because left femurs are mirrored
+[USP_TFM, ~, CEA] = USP(distalFemurInertia.vertices, distalFemurInertia.faces, ...
+    'R', uspInitialRot, 'visu',debugVisu,'verbose',verb, 'subject',subject);
 
-% Get indices of the epicodyles
+% Get min/max indices of the epicodyles in USP system
 distalFemurUSP=transformPoint3d(distalFemurInertia, USP_TFM);
-[~, minIdx]=min(distalFemurUSP.vertices(:,3));
-[~, maxIdx]=max(distalFemurUSP.vertices(:,3));
-ecInertia=transformPoint3d(distalFemurUSP.vertices([minIdx,maxIdx],:),inv(USP_TFM));
+[~, ecMinMaxIdxUSP(1)]=min(distalFemurUSP.vertices(:,3)); % MEC
+[~, ecMinMaxIdxUSP(2)]=max(distalFemurUSP.vertices(:,3)); % LEC
+MEC_max_USP=distalFemurUSP.vertices(ecMinMaxIdxUSP(1),:);
+LEC_max_USP=distalFemurUSP.vertices(ecMinMaxIdxUSP(2),:);
+% Get the CEA indices of the epicodyles in USP system
+CEA_intersectPts=intersectLineMesh3d(CEA, distalFemurUSP.vertices, distalFemurUSP.faces);
+[~, ecCEA_IdxUSP(1)]=min(CEA_intersectPts(:,3)); % MEC
+[~, ecCEA_IdxUSP(2)]=max(CEA_intersectPts(:,3)); % LEC
+MEC_CEA_USP=CEA_intersectPts(ecCEA_IdxUSP(1),:);
+LEC_CEA_USP=CEA_intersectPts(ecCEA_IdxUSP(2),:);
+% Get the morphing points of the epicodyles in USP system
+MEC_morph_USP=transformPoint3d(femurInertia.vertices(LMIdx.MedialEpicondyle,:), USP_TFM);
+LEC_morph_USP=transformPoint3d(femurInertia.vertices(LMIdx.LateralEpicondyle,:), USP_TFM);
+% Sanity check in case of osteophytes
+MEC_CEA_morph_Dist = distancePoints3d(MEC_morph_USP, MEC_CEA_USP);
+if distancePoints3d(MEC_max_USP, MEC_CEA_USP) > MEC_CEA_morph_Dist
+    MEC_morph_sphere = [MEC_morph_USP, MEC_CEA_morph_Dist];
+    MEC_CEA_sphere = [MEC_CEA_USP, MEC_CEA_morph_Dist];
+    MEC_cand=clipPoints3d(distalFemurUSP.vertices, MEC_morph_sphere, 'shape', 'sphere');
+    MEC_cand= [MEC_cand; clipPoints3d(distalFemurUSP.vertices, MEC_CEA_sphere, 'shape', 'sphere')];
+    [~, tempCandIdx]=min(MEC_cand(:,3));
+    MEC_USP=MEC_cand(tempCandIdx,:);
+else
+    % Keep max for MEC
+    MEC_USP=MEC_max_USP;
+end
+LEC_CEA_morph_Dist = distancePoints3d(LEC_morph_USP, LEC_CEA_USP);
+if distancePoints3d(LEC_max_USP, LEC_CEA_USP) > LEC_CEA_morph_Dist
+    LEC_morph_sphere = [LEC_morph_USP, LEC_CEA_morph_Dist];
+    LEC_CEA_sphere = [LEC_CEA_USP, LEC_CEA_morph_Dist];
+    LEC_cand=clipPoints3d(distalFemurUSP.vertices, LEC_morph_sphere, 'shape', 'sphere');
+    LEC_cand= [LEC_cand; clipPoints3d(distalFemurUSP.vertices, LEC_CEA_sphere, 'shape', 'sphere')];
+    [~, tempCandIdx]=max(LEC_cand(:,3));
+    LEC_USP=LEC_cand(tempCandIdx,:);
+else
+    % Keep max for MEC
+    LEC_USP=LEC_max_USP;
+end
+
+if debugVisu
+    [~, debugAxH3,]=visualizeMeshes(distalFemurUSP);
+    mouseControl3d(debugAxH3)
+    drawLine3d(debugAxH3, CEA)
+    drawPoint3d(debugAxH3, [MEC_morph_USP; LEC_morph_USP],...
+        'MarkerFaceColor','r','MarkerEdgeColor','r');
+    drawPoint3d(debugAxH3, [MEC_max_USP; LEC_max_USP],...
+        'MarkerFaceColor','g','MarkerEdgeColor','g');
+    drawPoint3d(debugAxH3, [MEC_CEA_USP; LEC_CEA_USP],...
+        'MarkerFaceColor','b','MarkerEdgeColor','b');
+    if exist('MEC_cand', 'var')
+        drawPoint3d(debugAxH3, MEC_cand,'MarkerEdgeColor','y');
+    end
+    if exist('LEC_cand', 'var')
+        drawPoint3d(debugAxH3, LEC_cand,'MarkerEdgeColor','y');
+    end
+    drawPoint3d(debugAxH3, [MEC_USP; LEC_USP],...
+        'MarkerFaceColor','k','MarkerEdgeColor','k');
+end
+
+% Get the epicondyle indices for the full femur
+ecInertia=transformPoint3d([MEC_USP; LEC_USP],inv(USP_TFM));
 [~, ecIdx] = pdist2(femurInertia.vertices,ecInertia,'euclidean','Smallest',1);
 
-if strcmp(side, 'L'); flipud(ecIdx); end
+if side == 'L'; flipud(ecIdx); end
 LMIdx.MedialEpicondyle=ecIdx(1); LMIdx.LateralEpicondyle=ecIdx(2);
 
 if debugVisu
-    drawPoint3d(debugAxH2, ...
-        femur.vertices([LMIdx.MedialEpicondyle,LMIdx.LateralEpicondyle],:),...
-        'MarkerFaceColor','r','MarkerEdgeColor','r');
+    MEC=femur.vertices(LMIdx.MedialEpicondyle,:);
+    LEC=femur.vertices(LMIdx.LateralEpicondyle,:);
+    drawPoint3d(debugAxH2, [MEC; LEC],'MarkerFaceColor','r','MarkerEdgeColor','r');
+    text(debugAxH2, MEC(1),MEC(2),MEC(3),'MEC')
+    text(debugAxH2, LEC(1),LEC(2),LEC(3),'LEC')
 end
 
 %% Construct the femoral CS
 switch definition
-    case 'Wu2002'
-        fwTFM2AFCS = Wu2002(femur,side,HJC,...
-            femur.vertices(LMIdx.MedialEpicondyle,:),...
-            femur.vertices(LMIdx.LateralEpicondyle,:),...
-            'visu', visu);
-    case 'WuBergmannComb'
-        [fwTFM2AFCS, ...
-            LMIdx.MedialPosteriorCondyle, ...
-            LMIdx.LateralPosteriorCondyle]...
-            = WuBergmannComb(femur,side,HJC,...
-            femur.vertices(LMIdx.MedialPosteriorCondyle,:),...
-            femur.vertices(LMIdx.LateralPosteriorCondyle,:),...
-            femur.vertices(LMIdx.IntercondylarNotch,:),...
-            'visu', visu);
-    case 'Bergmann2016'
-        [fwTFM2AFCS, LMIdx] = Bergmann2016(femur, side, HJC, LMIdx, 'visu', visu);
-    case 'Tabletop'
-        [fwTFM2AFCS, ...
-            LMIdx.MedialPosteriorCondyle, ...
-            LMIdx.LateralPosteriorCondyle, ...
-            LMIdx.PosteriorTrochantericCrest]...
-            = Tabletop(femur, side, HJC, ...
-            femur.vertices(LMIdx.MedialPosteriorCondyle,:),...
-            femur.vertices(LMIdx.LateralPosteriorCondyle,:),...
-            femur.vertices(LMIdx.IntercondylarNotch,:),...
-            NeckAxis, ShaftAxis, 'visu', visu);
-    case 'TabletopMediTEC'
-        [fwTFM2AFCS, ...
-            LMIdx.MedialPosteriorCondyle, ...
-            LMIdx.LateralPosteriorCondyle, ...
-            LMIdx.PosteriorTrochantericCrest]...
-            = TabletopMediTEC(femur, side, HJC, ...
-            femur.vertices(LMIdx.MedialPosteriorCondyle,:),...
-            femur.vertices(LMIdx.LateralPosteriorCondyle,:),...
-            femur.vertices(LMIdx.IntercondylarNotch,:),...
-            NeckAxis, 'visu', visu);
+    case 'wu2002'
+        fwTFM2AFCS = Wu2002(femur,side,HJC,LMIdx, 'visu',visu);
+    case 'wubergmanncomb'
+        [fwTFM2AFCS, LMIdx] = WuBergmannComb(femur,side,HJC,LMIdx, 'visu',visu);
+    case 'bergmann2016'
+        [fwTFM2AFCS, LMIdx] = Bergmann2016(femur, side, HJC, LMIdx, 'visu',visu);
+    case 'tabletop'
+        [fwTFM2AFCS, LMIdx] = Tabletop(femur, side, HJC, LMIdx, 'visu',visu);
+    case 'tabletopmeditec'
+        [fwTFM2AFCS, LMIdx] = TabletopMediTEC(femur, side, HJC, LMIdx, 'visu',visu);
 end
 
 end

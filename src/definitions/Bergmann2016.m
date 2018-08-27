@@ -74,8 +74,14 @@ TFM=refRot*iTFM;
 femurCS = transformPoint3d(femur, TFM);
 
 % Get the index of the most posterior point of the condyle
-LMIdx.MedialPosteriorCondyle = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
-LMIdx.LateralPosteriorCondyle = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
+switch side
+    case 'R'
+        LMIdx.MedialPosteriorCondyle = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
+        LMIdx.LateralPosteriorCondyle = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
+    case 'L'
+        LMIdx.MedialPosteriorCondyle = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
+        LMIdx.LateralPosteriorCondyle = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
+end
 
 %% visualization
 if visu
@@ -108,9 +114,12 @@ if visu
     edgeProps.Marker='o';
     edgeProps.MarkerEdgeColor='k';
     edgeProps.MarkerFaceColor='k';
-    drawEdge3d(...
-        femurCS.vertices(LMIdx.MedialPosteriorCondyle,:),...
-        femurCS.vertices(LMIdx.LateralPosteriorCondyle,:), edgeProps)
+    
+    PC=[femurCS.vertices(LMIdx.MedialPosteriorCondyle,:);...
+        femurCS.vertices(LMIdx.LateralPosteriorCondyle,:)];
+    drawEdge3d(PC(1,:),PC(2,:), edgeProps)
+    
+    text(PC(:,1),PC(:,2),PC(:,3),{'MPC';'LPC'})
     
     medicalViewButtons('RAS')
 end

@@ -1,5 +1,4 @@
-function [TFM, MPC_Idx, LPC_Idx, PTC_Idx] = Tabletop(femur, side, ...
-    HJC, MPC, LPC, ICN, NeckAxis, ShaftAxis, varargin)
+function [TFM, LMIdx] = Tabletop(femur, side, HJC, LMIdx, varargin)
 
 % inputs
 p = inputParser;
@@ -11,6 +10,14 @@ parse(p,femur,side,varargin{:});
 femur = p.Results.femur;
 visu = p.Results.visualization;
 
+%% Landmarks
+MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
+LPC = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
+ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
+NeckAxis = createLine3d(femur.vertices(LMIdx.NeckAxis(1),:),femur.vertices(LMIdx.NeckAxis(2),:));
+NeckOrthogonal = createLine3d(femur.vertices(LMIdx.NeckOrthogonal(1),:),femur.vertices(LMIdx.NeckOrthogonal(2),:));
+[~, NeckAxis(1:3), ~] = distanceLines3d(NeckAxis, NeckOrthogonal);
+ShaftAxis = createLine3d(femur.vertices(LMIdx.ShaftAxis(1),:),femur.vertices(LMIdx.ShaftAxis(2),:));
 
 %% Construction of P1
 % P1
@@ -85,14 +92,22 @@ TFM=ref2ROT*ref1ROT*iTFM;
 % The femur in the AFCS
 femurCS = transformPoint3d(femur, TFM);
 
-% Get the index of the tabletop points
+% Position of the landmarks in the bone CS
 MPC = transformPoint3d(MPC,ref2ROT);
 LPC = transformPoint3d(LPC,ref2ROT);
 PTC = transformPoint3d(PTC,ref2ROT);
+% Get the index of the tabletop points
 MPC_Idx = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
 LPC_Idx = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
 PTC_Idx = find(ismembertol(femurCS.vertices, PTC,'ByRows',true'));
 
+if side == 'L' % Switch MPC & LPC
+    MPC_Idx(2)=LPC_Idx; LPC_Idx=MPC_Idx(1); MPC_Idx(1)=[];
+end
+
+LMIdx.MedialPosteriorCondyle = MPC_Idx;
+LMIdx.LateralPosteriorCondyle = LPC_Idx;
+LMIdx.PosteriorTrochantericCrest = PTC_Idx;
 
 %% visualization
 if visu
@@ -131,6 +146,9 @@ if visu
     patch(tablePatch, edgeProps)
     
     drawLine3d(transformLine3d(NeckAxis, TFM))
+    
+    text(tablePatch.vertices(:,1),tablePatch.vertices(:,2),tablePatch.vertices(:,3),...
+        {'MPC';'LPC';'PTC'})
     
     medicalViewButtons('RAS')
 end

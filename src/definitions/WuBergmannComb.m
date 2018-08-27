@@ -1,4 +1,4 @@
-function [TFM, MPC_Idx, LPC_Idx] = WuBergmannComb(femur, side, HJC, MPC, LPC, ICN, varargin)
+function [TFM, LMIdx] = WuBergmannComb(femur, side, HJC, LMIdx, varargin)
 
 % A Combination of Wu2002 and Bergmann2016
 %   Mechanical axis: Connection of intercondylar notch and hip joint center
@@ -14,6 +14,11 @@ parse(p,femur,side,varargin{:});
 femur = p.Results.femur;
 visu = p.Results.visualization;
 
+%% Landmarks
+MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
+LPC = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
+ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
+
 %% inital transformation
 % mechanical axis is the connection of intercondylar notch and hip joint center
 MechanicalAxis = createLine3d(ICN, HJC);
@@ -26,7 +31,7 @@ Z = normalizeVector3d(crossProduct3d(X, Y));
 iTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 
 if strcmp(side, 'L')
-    iTFM=createRotationOy(pi)*iTFM;
+    iTFM=createRotationOy(pi)*iTFM; %#ok<MINV>
 end
 
 %% refinement
@@ -60,8 +65,14 @@ TFM=refRot*iTFM;
 femurCS = transformPoint3d(femur, TFM);
 
 % Get the index of the most posterior point of the condyle
-MPC_Idx = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
-LPC_Idx = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
+switch side
+    case 'R'
+        LMIdx.MedialPosteriorCondyle = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
+        LMIdx.LateralPosteriorCondyle = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
+    case 'L'
+        LMIdx.MedialPosteriorCondyle = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
+        LMIdx.LateralPosteriorCondyle = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
+end
 
 %% visualization
 if visu
@@ -89,7 +100,12 @@ if visu
     edgeProps.Marker='o';
     edgeProps.MarkerEdgeColor='k';
     edgeProps.MarkerFaceColor='k';
-    drawEdge3d(MPC,LPC,edgeProps)
+    
+    PC=[femurCS.vertices(LMIdx.MedialPosteriorCondyle,:);...
+        femurCS.vertices(LMIdx.LateralPosteriorCondyle,:)];
+    drawEdge3d(PC(1,:),PC(2,:), edgeProps)
+    
+    text(PC(:,1),PC(:,2),PC(:,3),{'MPC';'LPC'})
     
     medicalViewButtons('ASR')
 end
