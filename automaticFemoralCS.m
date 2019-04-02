@@ -41,6 +41,7 @@ addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'res']));
 
 %% Parse inputs
 p = inputParser;
+logParValidFunc=@(x) (islogical(x) || isequal(x,1) || isequal(x,0));
 addRequired(p,'femur',@(x) isstruct(x) && isfield(x, 'vertices') && isfield(x,'faces'))
 addRequired(p,'side',@(x) any(validatestring(upper(x(1)),{'R','L'})));
 isPoint3d = @(x) validateattributes(x,{'numeric'},...
@@ -51,10 +52,10 @@ isLine3d = @(x) validateattributes(x,{'numeric'},...
 addParameter(p,'NeckAxis',nan, isLine3d);
 validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop','TabletopMediTEC'};
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validStrings)));
-addParameter(p,'visualization',true,@islogical);
-addParameter(p,'verbose',false,@islogical);
+addParameter(p,'visualization',true,logParValidFunc);
+addParameter(p,'verbose',false,logParValidFunc);
 addParameter(p,'subject','anonymous',@(x) validateattributes(x,{'char'},{'nonempty'}));
-addParameter(p,'debugVisualization',false,@islogical);
+addParameter(p,'debugVisualization',false,logParValidFunc);
 
 parse(p,femur,side,varargin{:});
 femur = p.Results.femur;
@@ -62,10 +63,10 @@ side = upper(p.Results.side(1));
 HJC = p.Results.HJC;
 NeckAxis = p.Results.NeckAxis;
 definition = lower(p.Results.definition);
-visu = p.Results.visualization;
-verb = p.Results.verbose;
+visu = logical(p.Results.visualization);
+verb = logical(p.Results.verbose);
 subject = p.Results.subject;
-debugVisu = p.Results.debugVisualization;
+debugVisu = logical(p.Results.debugVisualization);
 
 %% Algorithm
 % Get inertia transformation

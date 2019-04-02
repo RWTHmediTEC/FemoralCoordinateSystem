@@ -35,7 +35,7 @@ if strcmp(side, 'L')
 end
 
 %% refinement
-% transform the mesh by the inertial TFM
+% transform the mesh by the initial TFM
 iMesh=transformPoint3d(femur, iTFM);
 % get the length of the femur
 iLength = abs(max(iMesh.vertices(:,2)))+abs(min(iMesh.vertices(:,2)));
@@ -49,12 +49,12 @@ sagittalPlane=[0 0 0 1 0 0 0 1 0];
 
 % start refinement: find the most posterior points of the condyles and
 % rotate them into the new posterior condyle line
-tempRot = refinePosteriorCondyleAxis(MCMesh, LCMesh);
+[tempRot, MPC, LPC] = refinePosteriorCondyleAxis(MCMesh, LCMesh);
 refRot = tempRot;
 while ~isequal(eye(4), tempRot)
     MCMesh.vertices=transformPoint3d(MCMesh.vertices, tempRot);
     LCMesh.vertices=transformPoint3d(LCMesh.vertices, tempRot);
-    [tempRot, MPC, LPC]  = refinePosteriorCondyleAxis(MCMesh, LCMesh);
+    [tempRot, MPC, LPC] = refinePosteriorCondyleAxis(MCMesh, LCMesh);
     refRot = tempRot*refRot;
 end
 

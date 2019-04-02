@@ -60,12 +60,12 @@ sagittalPlane=createPlane(transformPoint3d(ICN, iTFM), [1 0 0]);
 
 % Start refinement: find the most posterior points of the condyles and
 % rotate them into the new posterior condyle line
-tempROT = refinePosteriorCondyleAxis(MCMesh, LCMesh);
+[tempROT, MPC, LPC] = refinePosteriorCondyleAxis(MCMesh, LCMesh);
 ref1ROT = tempROT;
 while ~isequal(eye(4), tempROT)
     MCMesh.vertices=transformPoint3d(MCMesh.vertices, tempROT);
     LCMesh.vertices=transformPoint3d(LCMesh.vertices, tempROT);
-    [tempROT, MPC, LPC]  = refinePosteriorCondyleAxis(MCMesh, LCMesh);
+    [tempROT, MPC, LPC] = refinePosteriorCondyleAxis(MCMesh, LCMesh);
     ref1ROT = tempROT*ref1ROT;
 end
 
