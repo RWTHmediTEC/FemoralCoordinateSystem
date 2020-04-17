@@ -106,6 +106,15 @@ if debugVisu
     patchProps.FaceColor = 'y';
     patchProps.FaceAlpha = 0.75;
     patch(template, patchProps)
+%     load('template_areas.mat','areas')
+%     tempAreaIdx=areas{1,2} | areas{2,2} | areas{3,2};
+%     patch('vertices',template.vertices,'faces',template.faces(~tempAreaIdx,:), patchProps)    
+%     patchProps.FaceColor = 'r';
+%     patchProps.FaceAlpha = 1;
+%     patch('vertices',template.vertices,'faces',template.faces(tempAreaIdx,:), patchProps)
+%     load('template_landmarks.mat','landmarks')
+%     drawPoint3d(template.vertices(cell2mat(struct2cell(landmarks)),:),...
+%         'MarkerFaceColor','r','MarkerEdgeColor','r')
 end
 
 % Length of the template femur
@@ -140,7 +149,6 @@ if debugVisu
     patchProps.FaceColor = 'w';
     patch(femurCondReg, patchProps)
 end
-
 
 % Adapt femoral version of the template
 templatePreReg.vertices = adjustTemplateFemoralVersion(template.vertices, femurCondReg.vertices);
@@ -178,7 +186,7 @@ for lm=1:length(landmarksIdx)
 end
 if debugVisu
     drawPoint3d(femurInertia.vertices(landmarksIdx,:),...
-        'MarkerFaceColor','k','MarkerEdgeColor','k')
+        'MarkerFaceColor','r','MarkerEdgeColor','r')
 end
 
 % Areas
@@ -194,7 +202,7 @@ for a=1:size(areas,1)
     areas{a,3} = knnsearch(femurCondRegKDTree, tempVertices);
     if debugVisu
         drawPoint3d(femurInertia.vertices(areas{a,3},:),...
-            'MarkerFaceColor',[0.4 .08 .08],'MarkerEdgeColor',[0.4 .08 .08])
+            'MarkerFaceColor','r','MarkerEdgeColor','r')
     end
 end
 
