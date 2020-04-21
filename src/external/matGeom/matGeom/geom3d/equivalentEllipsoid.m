@@ -1,13 +1,13 @@
-function ell = inertiaEllipsoid(points)
-%INERTIAELLIPSOID Inertia ellipsoid of a set of 3D points
+function ell = equivalentEllipsoid(points)
+% Equivalent ellipsoid of a set of 3D points.
 %
-%   ELL = inertiaEllipsoid(PTS)
-%   Compute the inertia ellipsoid of the set of points PTS. The result is
-%   an ellispoid defined by:
-%   ELL = [XC YC ZC A B C PHI THETA PSI]
-%   where [XC YC ZY] is the center, [A B C] are lengths of semi-axes (in
-%   decreasing order), and [PHI THETA PSI] are euler angles representing 
-%   the ellipsoid orientation, in degrees.
+%   ELL = equivalentEllipsoid(PTS)
+%   Compute the equivalent ellipsoid of the set of points PTS. The result
+%   is an ellipsoid defined by:
+%   ELL = [XC YC ZC  A B C  PHI THETA PSI]
+%   where [XC YC ZY] is the center, [A B C] are the lengths of the
+%   semi-axes (in decreasing order), and [PHI THETA PSI] are Euler angles
+%   representing  the ellipsoid orientation, in degrees.
 %
 %   Example
 %     pts = randn(300, 3);
@@ -16,18 +16,18 @@ function ell = inertiaEllipsoid(points)
 %     pts = transformPoint3d(pts, createRotationOy(pi/4));
 %     pts = transformPoint3d(pts, createRotationOz(pi/3));
 %     pts = transformPoint3d(pts, createTranslation3d([5 4 3]));
-%     elli = inertiaEllipsoid(pts);
+%     elli = equivalentEllipsoid(pts);
 %     figure; drawPoint3d(pts); axis equal;
 %     hold on; drawEllipsoid(elli, ...
 %         'drawEllipses', true, 'EllipseColor', 'b', 'EllipseWidth', 3);
 %
 %   See also
-%   spheres, drawEllipsoid, inertiaEllipse
-%
+%     spheres, drawEllipsoid, equivalentEllipse, principalAxes
+%     principalAxesTransform, rotation3dToEulerAngles
 
 % ------
 % Author: David Legland
-% e-mail: david.legland@nantes.inra.fr
+% e-mail: david.legland@inra.fr
 % Created: 2011-03-12,    using Matlab 7.9.0.529 (R2009b)
 % Copyright 2011 INRA - Cepia Software Platform.
 
@@ -41,7 +41,7 @@ center = mean(points);
 covPts = cov(points)/n;
 
 % perform a principal component analysis with 2 variables, 
-% to extract inertia axes
+% to extract equivalent axes
 [U, S] = svd(covPts);
 
 % extract length of each semi axis

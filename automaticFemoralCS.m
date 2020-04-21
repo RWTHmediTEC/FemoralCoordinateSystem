@@ -1,4 +1,4 @@
-function [fwTFM2AFCS, LMIdx, HJC] = automaticFemoralCS(femur, side, varargin)
+function [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, side, varargin)
 %AUTOMATICFEMORALCS Calculate an femoral coordinate system (AFCS)
 %
 % REQUIRED INPUT:
@@ -191,7 +191,7 @@ end
 
 % Areas
 load('template_areas.mat','areas')
-areas=[areas,cell(size(areas,1),1)]; %#ok<NODEF>
+areas=[areas,cell(size(areas,1),1)];
 for a=1:size(areas,1)
     tempFaces = template.faces(areas{a,2},:);
     [unqVertIds, ~, ~] = unique(tempFaces);
@@ -218,7 +218,9 @@ end
 if isnan(HJC)
     % fit sphere to the head of the femur, if HJC is not already available
     Head = femur.vertices(areas{ismember(areas(:,1),'Head'),3},:);
-    [HJC, Radius] = spherefit(Head); HJC=HJC';
+    headSphere = fitSphere(Head); 
+    HJC = headSphere(1:3);
+    Radius = headSphere(4);
     if debugVisu
         [~, debugAxH2, debugFigH2] = visualizeMeshes(femur);
         set(debugFigH2, 'Name', [subject ': initial HJC, neck axis, ... (Debug Figure)'],...
@@ -255,25 +257,7 @@ if debugVisu
 end
 
 % Shaft Axis
-Shaft = femur.vertices(areas{ismember(areas(:,1),'Shaft'),3},:);
-% Fit ellipsoid to the shaft
-ShaftEllipsoid = inertiaEllipsoid(Shaft);
-% Construct the main shaft axis from the shaft ellipsoid
-ShaftVector = transformVector3d([1 0 0], eulerAnglesToRotation3d(ShaftEllipsoid(7:9)));
-ShaftAxis = [ShaftEllipsoid(1:3) ShaftVector];
-ShaftPlane = createPlane(ShaftAxis(1:3), ShaftAxis(4:6));
-if ~isBelowPlane(HJC,ShaftPlane)
-    ShaftAxis=reverseLine3d(ShaftAxis);
-end
-% Use vertex indices of the mesh to define the shaft axis
-LMIdx.ShaftAxis = lineToVertexIndices(ShaftAxis, femur);
-if debugVisu
-    ShaftAxis2=createLine3d(...
-        femur.vertices(LMIdx.ShaftAxis(1),:),...
-        femur.vertices(LMIdx.ShaftAxis(2),:));
-    ShaftAxis2(4:6)=normalizeVector3d(ShaftAxis2(4:6));
-    drawVector3d(ShaftAxis2(1:3),ShaftAxis2(4:6)*100,'g');
-end
+[ShaftAxis, LMIdx.ShaftAxis] = detectShaftAxis(femur, HJC, 'debug',debugVisu);
 
 % Neck Orthogonal
 NeckOrthogonal(1:3) = NeckAxis(1:3);
@@ -418,6 +402,21 @@ switch definition
         [fwTFM2AFCS, LMIdx] = Tabletop(femur, side, HJC, LMIdx, 'visu',visu);
     case 'tabletopmeditec'
         [fwTFM2AFCS, LMIdx] = TabletopMediTEC(femur, side, HJC, LMIdx, 'visu',visu);
+end
+
+%% Save landmarks in cartesian coordinates in input femur CS
+LM.FemoralHeadCenter = HJC;
+LM.NeckAxis = NeckAxis;
+LM.ShaftAxis = ShaftAxis;
+LM.MedialEpicondyle = femur.vertices(LMIdx.MedialEpicondyle,:);
+LM.LateralEpicondyle = femur.vertices(LMIdx.LateralEpicondyle,:);
+LM.IntercondylarNotch = femur.vertices(LMIdx.IntercondylarNotch,:);
+LM.MedialPosteriorCondyle = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
+LM.LateralPosteriorCondyle = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
+LM.GreaterTrochanter = femur.vertices(LMIdx.GreaterTrochanter,:);
+LM.LesserTrochanter = femur.vertices(LMIdx.LesserTrochanter,:);
+if isfield(LMIdx,'PosteriorTrochantericCrest')
+    LM.PosteriorTrochantericCrest = femur.vertices(LMIdx.PosteriorTrochantericCrest,:);
 end
 
 end
