@@ -4,9 +4,9 @@
 [submodule "src/internal/AnatomicalNeckAxis"]
 	path = src/internal/AnatomicalNeckAxis
 	url = //sagnix/Programmierung/public/Matlab/AnatomicalNeckAxis
-[submodule "src/external/Quiver3DbyShawnArseneau"]
-	path = src/external/Quiver3DbyShawnArseneau
-	url = https://github.com/oqilipo/Quiver3DbyShawnArseneau
 [submodule "src/internal/UnifiedSagittalPlane"]
 	path = src/internal/UnifiedSagittalPlane
 	url = //sagnix/Programmierung/public/Matlab/UnifiedSagittalPlane
+[submodule "src/external/AnatomicalViewTools"]
+	path = src/external/AnatomicalViewTools
+	url = https://github.com/MCM-Fischer/AnatomicalViewTools

@@ -82,14 +82,8 @@ if visu
     patchProps.FaceAlpha = 0.75;
     patchProps.EdgeLighting = 'gouraud';
     patchProps.FaceLighting = 'gouraud';
-    visualizeMeshes(femurCS, patchProps)
-    
-    % Coordinate system
-    Q.C = [1 0 0; 0 1 0; 0 0 1];
-    QDScaling = distancePoints3d(MPC, LPC);
-    Q.P = repmat([0, 0, 0], 3, 1);
-    Q.D = QDScaling*[1 0 0; 0 1 0; 0 0 1];
-    [~] = quiver3D(Q.P, Q.D, Q.C);
+    [~,axH]=visualizeMeshes(femurCS, patchProps);
+    drawAxis3d(axH,35,1.5)
     
     % Landmarks
     drawPoint3d(transformPoint3d(ICN, TFM),'MarkerFaceColor','k','MarkerEdgeColor','k')
@@ -107,7 +101,7 @@ if visu
     
     text(PC(:,1),PC(:,2),PC(:,3),{'MPC';'LPC'})
     
-    medicalViewButtons('ASR')
+    anatomicalViewButtons('ASR')
 end
 end
 

@@ -91,14 +91,8 @@ if visu
     patchProps.FaceAlpha = 0.75;
     patchProps.EdgeLighting = 'gouraud';
     patchProps.FaceLighting = 'gouraud';
-    visualizeMeshes(femurCS, patchProps)
-    
-    % Coordinate system
-    Q.C = [1 0 0; 0 1 0; 0 0 1];
-    QDScaling = distancePoints3d(MPC, LPC);
-    Q.P = repmat([0, 0, 0], 3, 1);
-    Q.D = QDScaling*[1 0 0; 0 1 0; 0 0 1];
-    [~] = quiver3D(Q.P, Q.D, Q.C);
+    [~,axH]=visualizeMeshes(femurCS, patchProps);
+    drawAxis3d(axH,35,1.5)
     
     % Landmarks
     drawPoint3d(transformPoint3d(P1, TFM),'MarkerFaceColor','k','MarkerEdgeColor','k')
@@ -106,9 +100,9 @@ if visu
     edgeProps.LineStyle='-';
     edgeProps.Color='k';
     
-    drawEdge3d(clipLine3d(transformLine3d(StraightFemurAxis, TFM),...
+    drawEdge3d(axH,clipLine3d(transformLine3d(StraightFemurAxis, TFM),...
         boundingBox3d(femurCS.vertices)),edgeProps)
-    drawEdge3d(...
+    drawEdge3d(axH,...
         femurCS.vertices(LMIdx.NeckAxis(1),:),...
         femurCS.vertices(LMIdx.NeckAxis(2),:), edgeProps);
     edgeProps.Marker='o';
@@ -117,11 +111,11 @@ if visu
     
     PC=[femurCS.vertices(LMIdx.MedialPosteriorCondyle,:);...
         femurCS.vertices(LMIdx.LateralPosteriorCondyle,:)];
-    drawEdge3d(PC(1,:),PC(2,:), edgeProps)
+    drawEdge3d(axH,PC(1,:),PC(2,:), edgeProps)
     
-    text(PC(:,1),PC(:,2),PC(:,3),{'MPC';'LPC'})
+    text(axH,PC(:,1),PC(:,2),PC(:,3),{'MPC';'LPC'})
     
-    medicalViewButtons('RAS')
+    anatomicalViewButtons(axH,'RAS')
 end
 end
 

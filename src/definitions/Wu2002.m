@@ -56,11 +56,7 @@ if visu
     visualizeMeshes(femurCS, patchProps)
     
     % Coordinate system
-    Q.C = [1 0 0; 0 1 0; 0 0 1];
-    QDScaling = distancePoints3d(MEC, LEC);
-    Q.P = repmat([0, 0, 0], 3, 1);
-    Q.D = QDScaling*[1 0 0; 0 1 0; 0 0 1];
-    [~] = quiver3D(Q.P, Q.D, Q.C);
+    drawAxis3d(35,1.5)
     
     % Landmarks
     drawPoint3d(transformPoint3d(MEC_LEC_midPoint, TFM),...
@@ -75,7 +71,7 @@ if visu
     drawEdge3d(EC_TFM(1,:),EC_TFM(2,:),edgeProps)
     text(EC_TFM(:,1),EC_TFM(:,2),EC_TFM(:,3),{'MEC';'LEC'})
     
-    medicalViewButtons('ASR')
+    anatomicalViewButtons('ASR')
 end
 
 end
