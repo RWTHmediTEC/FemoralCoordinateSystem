@@ -222,12 +222,13 @@ if isnan(HJC)
     HJC = headSphere(1:3);
     Radius = headSphere(4);
     if debugVisu
-        [~, debugAxH2, debugFigH2] = visualizeMeshes(femur);
-        set(debugFigH2, 'Name', [subject ': initial HJC, neck axis, ... (Debug Figure)'],...
-            'NumberTitle','Off')
-        mouseControl3d
-        hold on
-        drawSphere([HJC, Radius])
+        patchProps.FaceColor = [223, 206, 161]/255;
+        patchProps.FaceAlpha = 0.5;
+        [~, debugAxH2, debugFigH2] = visualizeMeshes(femur, patchProps);
+        debugFigH2.Name=[subject ': initial HJC, neck axis, ... (Debug Figure)'];
+        debugFigH2.NumberTitle='Off';
+        mouseControl3d(debugAxH2)
+        drawSphere(debugAxH2, [HJC, Radius])
     end
 end
 
@@ -249,15 +250,22 @@ end
 % Use vertex indices of the mesh to define the neck axis
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 if debugVisu
-    NeckAxis2=createLine3d(...
+    debugNeckAxis = createLine3d(...
         femur.vertices(LMIdx.NeckAxis(1),:),...
         femur.vertices(LMIdx.NeckAxis(2),:));
-    NeckAxis2(4:6)=normalizeVector3d(NeckAxis2(4:6));
-    drawVector3d(NeckAxis2(1:3),NeckAxis2(4:6)*100,'r');
+    debugNeckAxis(4:6) = normalizeVector3d(debugNeckAxis(4:6));
+    drawVector3d(debugAxH2, debugNeckAxis(1:3),debugNeckAxis(4:6)*100,'-.r');
 end
 
 % Shaft Axis
 [ShaftAxis, LMIdx.ShaftAxis] = detectShaftAxis(femur, HJC, 'debug',debugVisu);
+if debugVisu
+    debugShaftAxis = createLine3d(...
+        femur.vertices(LMIdx.ShaftAxis(1),:),...
+        femur.vertices(LMIdx.ShaftAxis(2),:));
+    debugShaftAxis(4:6) = normalizeVector3d(debugShaftAxis(4:6));
+    drawVector3d(debugAxH2, debugShaftAxis(1:3),debugShaftAxis(4:6)*100,'-.g');
+end
 
 % Neck Orthogonal
 NeckOrthogonal(1:3) = NeckAxis(1:3);
@@ -266,11 +274,11 @@ NeckOrthogonal(4:6) = crossProduct3d(NeckAxis(4:6), ShaftAxis(4:6));
 if strcmp(side, 'L'); NeckOrthogonal(4:6)=-NeckOrthogonal(4:6); end
 LMIdx.NeckOrthogonal = lineToVertexIndices(NeckOrthogonal, femur);
 if debugVisu
-    NeckOrthogonal2=createLine3d(...
+    debugNeckOrthogonal = createLine3d(...
         femur.vertices(LMIdx.NeckOrthogonal(1),:),...
         femur.vertices(LMIdx.NeckOrthogonal(2),:));
-    NeckOrthogonal2(4:6)=normalizeVector3d(NeckOrthogonal2(4:6));
-    drawVector3d(NeckOrthogonal2(1:3),NeckOrthogonal2(4:6)*100,'b');
+    debugNeckOrthogonal(4:6) = normalizeVector3d(debugNeckOrthogonal(4:6));
+    drawVector3d(debugAxH2, debugNeckOrthogonal(1:3),debugNeckOrthogonal(4:6)*100,'-.b');
 end
 
 %% Refinement of the neck axis
@@ -279,6 +287,13 @@ NeckAxis = ANA(femur.vertices, femur.faces, side, ...
     LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,...
     'visu', debugVisu,'verbose',verb,'subject', subject);
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
+if debugVisu
+    debugNeckAxis = createLine3d(...
+        femur.vertices(LMIdx.NeckAxis(1),:),...
+        femur.vertices(LMIdx.NeckAxis(2),:));
+    debugNeckAxis(4:6) = normalizeVector3d(debugNeckAxis(4:6));
+    drawVector3d(debugAxH2, debugNeckAxis(1:3),debugNeckAxis(4:6)*100,'r');
+end
 % Neck Orthogonal
 NeckOrthogonal(1:3) = NeckAxis(1:3);
 NeckOrthogonal(4:6) = crossProduct3d(NeckAxis(4:6), ShaftAxis(4:6));

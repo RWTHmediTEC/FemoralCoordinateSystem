@@ -48,6 +48,7 @@ if ~isBelowPlane(HJC,shaftPlane)
 end
 % Use vertex indices of the mesh to define the shaft axis
 shaftAxisIdx = lineToVertexIndices(shaftAxis, femur);
+
 if debugVisu
     patchProps.EdgeColor = 'none';
     patchProps.FaceColor = [223, 206, 161]/255;
@@ -56,21 +57,16 @@ if debugVisu
     [~, debugAx, debugFig] = visualizeMeshes(femur,patchProps);
     set(debugFig, 'Name', 'Debug figure: shaft axis','NumberTitle','Off')
     mouseControl3d(debugAx)
-    % max distance
+    % Draw max. distance line
     drawPoint3d(debugAx, maxDistPts,'MarkerFaceColor','c','MarkerEdgeColor','c')
     drawVector3d(maxDistLine(1:3),maxDistLine(4:6),'c');
     drawPlane3d(debugAx,proximalCutPlane)
     drawPlane3d(debugAx,distalCutPlane)
-    % shaft
+    % Draw shaft
     patchProps.FaceColor = 'r';
     patch(debugAx, shaft, patchProps)
-    % shaft axis
-    shaftAxisIdxBased=createLine3d(...
-        femur.vertices(shaftAxisIdx(1),:),...
-        femur.vertices(shaftAxisIdx(2),:));
-    shaftAxisIdxBased(4:6) = normalizeVector3d(shaftAxisIdxBased(4:6));
-    drawVector3d(shaftAxisIdxBased(1:3),shaftAxisIdxBased(4:6)*100,'g');
-    drawLine3d(debugAx, shaftAxisIdxBased,'k');
+    % Draw shaft axis
+    drawLine3d(debugAx, shaftAxis,'k');
 end
 
 end
