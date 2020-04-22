@@ -31,10 +31,11 @@ PosteriorCondyleAxis = createLine3d(MPC, LPC);
 Z = normalizeVector3d(FemoralMidLine(4:6));
 Y = normalizeVector3d(crossProduct3d(FemoralMidLine(4:6), PosteriorCondyleAxis(4:6)));
 X = normalizeVector3d(crossProduct3d(Y, Z));
-iTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
 
+iTFM = [[X;Y;Z],[0 0 0]'; [0 0 0 1]]*createTranslation3d(-HJC);
+% If it is a left femur, rotate 180° around the Z axis
 if strcmp(side, 'L')
-    iTFM=createRotationOz(pi)*iTFM; %#ok<MINV>
+    iTFM=createRotationOz(pi)*iTFM;
 end
 
 %% refinement 1

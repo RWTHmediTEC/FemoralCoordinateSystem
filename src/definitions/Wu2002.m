@@ -39,9 +39,11 @@ Y = normalizeVector3d(MechanicalAxis(4:6));
 X = normalizeVector3d(crossProduct3d(MechanicalAxis(4:6), EpicondyleAxis(4:6)));
 Z = normalizeVector3d(crossProduct3d(X, Y));
 
-TFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
-
-if strcmp(side, 'L'); TFM=createRotationOy(pi)*TFM; end %#ok<MINV>
+TFM = [[X;Y;Z],[0 0 0]'; [0 0 0 1]]*createTranslation3d(-HJC);
+% If it is a left femur, rotate 180° around the Y axis
+if strcmp(side, 'L')
+    TFM=createRotationOy(pi)*TFM;
+end
 
 %% visualization
 if visu
