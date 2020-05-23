@@ -322,76 +322,26 @@ distalFemurInertia = cutMeshByPlane(femurInertia, distalCutPlaneInertia);
 Y = normalizeVector3d(ShaftAxisInertia(4:6));
 X = normalizeVector3d(crossProduct3d(ShaftAxisInertia(4:6), CondyleAxisInertia(4:6)));
 Z = normalizeVector3d(crossProduct3d(X, Y));
-uspInitialTFM = inv([[inv([X; Y; Z]), HJC']; [0 0 0 1]]);
-uspInitialRot = rotation3dToEulerAngles(uspInitialTFM);
 
 % The inertia femur is always a right femur because left femurs are mirrored
-[USP_TFM, ~, CEA] = USP(distalFemurInertia.vertices, distalFemurInertia.faces, ...
-    'R', uspInitialRot, 'visu',debugVisu,'verbose',verb, 'subject',subject);
+[USP_TFM, PFEA, CEA] = USP(distalFemurInertia.vertices, distalFemurInertia.faces, ...
+    'R', ...
+    rotation3dToEulerAngles([X; Y; Z], 'ZYX'), ...
+    'visu',debugVisu, ...
+    'verbose',verb, ...
+    'subject',subject);
 
-% Get min/max indices of the epicodyles in USP system
+% Transform distal femur into the USP CS
 distalFemurUSP=transformPoint3d(distalFemurInertia, USP_TFM);
-[~, ecMinMaxIdxUSP(1)]=min(distalFemurUSP.vertices(:,3)); % MEC
-[~, ecMinMaxIdxUSP(2)]=max(distalFemurUSP.vertices(:,3)); % LEC
-MEC_max_USP=distalFemurUSP.vertices(ecMinMaxIdxUSP(1),:);
-LEC_max_USP=distalFemurUSP.vertices(ecMinMaxIdxUSP(2),:);
-% Get the CEA indices of the epicodyles in USP system
-CEA_intersectPts=intersectLineMesh3d(CEA, distalFemurUSP.vertices, distalFemurUSP.faces);
-[~, ecCEA_IdxUSP(1)]=min(CEA_intersectPts(:,3)); % MEC
-[~, ecCEA_IdxUSP(2)]=max(CEA_intersectPts(:,3)); % LEC
-MEC_CEA_USP=CEA_intersectPts(ecCEA_IdxUSP(1),:);
-LEC_CEA_USP=CEA_intersectPts(ecCEA_IdxUSP(2),:);
-% Get the morphing points of the epicodyles in USP system
+% Get the morphing points of the epicodyles in USP CS
 MEC_morph_USP=transformPoint3d(femurInertia.vertices(LMIdx.MedialEpicondyle,:), USP_TFM);
 LEC_morph_USP=transformPoint3d(femurInertia.vertices(LMIdx.LateralEpicondyle,:), USP_TFM);
-% Sanity check in case of osteophytes
-MEC_CEA_morph_Dist = distancePoints3d(MEC_morph_USP, MEC_CEA_USP);
-if distancePoints3d(MEC_max_USP, MEC_CEA_USP) > MEC_CEA_morph_Dist
-    MEC_morph_sphere = [MEC_morph_USP, MEC_CEA_morph_Dist];
-    MEC_CEA_sphere = [MEC_CEA_USP, MEC_CEA_morph_Dist];
-    MEC_cand=clipPoints3d(distalFemurUSP.vertices, MEC_morph_sphere, 'shape', 'sphere');
-    MEC_cand= [MEC_cand; clipPoints3d(distalFemurUSP.vertices, MEC_CEA_sphere, 'shape', 'sphere')];
-    [~, tempCandIdx]=min(MEC_cand(:,3));
-    MEC_USP=MEC_cand(tempCandIdx,:);
-else
-    % Keep max for MEC
-    MEC_USP=MEC_max_USP;
-end
-LEC_CEA_morph_Dist = distancePoints3d(LEC_morph_USP, LEC_CEA_USP);
-if distancePoints3d(LEC_max_USP, LEC_CEA_USP) > LEC_CEA_morph_Dist
-    LEC_morph_sphere = [LEC_morph_USP, LEC_CEA_morph_Dist];
-    LEC_CEA_sphere = [LEC_CEA_USP, LEC_CEA_morph_Dist];
-    LEC_cand=clipPoints3d(distalFemurUSP.vertices, LEC_morph_sphere, 'shape', 'sphere');
-    LEC_cand= [LEC_cand; clipPoints3d(distalFemurUSP.vertices, LEC_CEA_sphere, 'shape', 'sphere')];
-    [~, tempCandIdx]=max(LEC_cand(:,3));
-    LEC_USP=LEC_cand(tempCandIdx,:);
-else
-    % Keep max for MEC
-    LEC_USP=LEC_max_USP;
-end
-
-if debugVisu
-    [~, debugAxH3,]=visualizeMeshes(distalFemurUSP);
-    mouseControl3d(debugAxH3)
-    drawLine3d(debugAxH3, CEA)
-    drawPoint3d(debugAxH3, [MEC_morph_USP; LEC_morph_USP],...
-        'MarkerFaceColor','r','MarkerEdgeColor','r');
-    drawPoint3d(debugAxH3, [MEC_max_USP; LEC_max_USP],...
-        'MarkerFaceColor','g','MarkerEdgeColor','g');
-    drawPoint3d(debugAxH3, [MEC_CEA_USP; LEC_CEA_USP],...
-        'MarkerFaceColor','b','MarkerEdgeColor','b');
-    if exist('MEC_cand', 'var')
-        drawPoint3d(debugAxH3, MEC_cand,'MarkerEdgeColor','y');
-    end
-    if exist('LEC_cand', 'var')
-        drawPoint3d(debugAxH3, LEC_cand,'MarkerEdgeColor','y');
-    end
-    drawPoint3d(debugAxH3, [MEC_USP; LEC_USP],...
-        'MarkerFaceColor','k','MarkerEdgeColor','k');
-end
+% Refinement of the epicondyles (beta)
+[MEC_USP, LEC_USP] = epicondyleRefinement(distalFemurUSP, CEA, ...
+    MEC_morph_USP, LEC_morph_USP, 'visu',debugVisu);
 
 % Get the epicondyle indices for the full femur
-ecInertia=transformPoint3d([MEC_USP; LEC_USP],inv(USP_TFM));
+ecInertia = transformPoint3d([MEC_USP; LEC_USP],inv(USP_TFM));
 [~, ecIdx] = pdist2(femurInertia.vertices,ecInertia,'euclidean','Smallest',1);
 
 if side == 'L'; flipud(ecIdx); end
@@ -404,6 +354,9 @@ if debugVisu
     text(debugAxH2, MEC(1),MEC(2),MEC(3),'MEC')
     text(debugAxH2, LEC(1),LEC(2),LEC(3),'LEC')
 end
+
+%% Refinement of the Intercondylar Notch (ICN)
+
 
 %% Construct the femoral CS
 switch definition

@@ -9,5 +9,5 @@ Idx=1;
 [fwTFM2AFCS, LMIdx] = automaticFemoralCS(F(Idx).mesh, F(Idx).side,...
     'definition','tabletopmeditec','vis',1, 'verb',0, 'debug',0);
 
-[List.f, List.p] = matlab.codetools.requiredFilesAndProducts([mfilename '.m']); 
-List.f = List.f'; List.p = List.p';
+% [List.f, List.p] = matlab.codetools.requiredFilesAndProducts([mfilename '.m']); 
+% List.f = List.f'; List.p = List.p';
