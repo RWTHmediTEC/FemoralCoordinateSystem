@@ -10,6 +10,3 @@
 [submodule "src/external/AnatomicalViewTools"]
 	path = src/external/AnatomicalViewTools
 	url = https://github.com/MCM-Fischer/AnatomicalViewTools
-[submodule "src/internal/DistalFemurExtremityPoints"]
-	path = src/internal/DistalFemurExtremityPoints
-	url = //sagnix/Programmierung/public/Matlab/DistalFemurExtremityPoints
