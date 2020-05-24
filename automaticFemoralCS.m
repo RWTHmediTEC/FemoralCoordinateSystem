@@ -356,7 +356,16 @@ if debugVisu
 end
 
 %% Refinement of the Intercondylar Notch (ICN)
+extremePoints = distalFemurExtremePoints(distalFemurUSP, 'Right', PFEA, 'visu', debugVisu, 'debug',0);
+extremePointsInertia = structfun(@(x) transformPoint3d(x, inv(USP_TFM)), extremePoints,'uni',0);
+[~, icnIdx] = pdist2(femurInertia.vertices, extremePointsInertia.Intercondylar, 'euclidean','Smallest',1);
+LMIdx.IntercondylarNotch = icnIdx;
 
+if debugVisu
+    ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
+    drawPoint3d(debugAxH2, ICN,'MarkerFaceColor','r','MarkerEdgeColor','r');
+    text(debugAxH2, ICN(1),ICN(2),ICN(3),'ICN')
+end
 
 %% Construct the femoral CS
 switch definition
