@@ -28,9 +28,6 @@ function [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, side, varargin
 %   fwTFM2AFCS: Forward transformation of the femur into the femoral CS
 %   LMIdx: Landmark indices into the vertices of the femur
 %
-% TODO:
-%   Add intercondylar notch refinement (ICN)
-%
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
 % VERSION: 1.0.3
@@ -358,13 +355,23 @@ end
 %% Refinement of the Intercondylar Notch (ICN)
 extremePoints = distalFemurExtremePoints(distalFemurUSP, 'Right', PFEA, 'visu', debugVisu, 'debug',0);
 extremePointsInertia = structfun(@(x) transformPoint3d(x, inv(USP_TFM)), extremePoints,'uni',0);
-[~, icnIdx] = pdist2(femurInertia.vertices, extremePointsInertia.Intercondylar, 'euclidean','Smallest',1);
-LMIdx.IntercondylarNotch = icnIdx;
+[~, LMIdx.IntercondylarNotch] = pdist2(femurInertia.vertices, ...
+    extremePointsInertia.Intercondylar, 'euclidean','Smallest',1);
+[~, LMIdx.ProximoposteriorMedialCondyle] = pdist2(femurInertia.vertices, ...
+    extremePointsInertia.Medial, 'euclidean','Smallest',1);
+[~, LMIdx.ProximoposteriorLateralCondyle] = pdist2(femurInertia.vertices, ...
+    extremePointsInertia.Lateral, 'euclidean','Smallest',1);
 
 if debugVisu
     ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
     drawPoint3d(debugAxH2, ICN,'MarkerFaceColor','r','MarkerEdgeColor','r');
     text(debugAxH2, ICN(1),ICN(2),ICN(3),'ICN')
+    PPMC = femur.vertices(LMIdx.ProximoposteriorMedialCondyle,:);
+    drawPoint3d(debugAxH2, PPMC,'MarkerFaceColor','r','MarkerEdgeColor','r');
+    text(debugAxH2, PPMC(1),PPMC(2),PPMC(3),'PPMC')
+    PPLC = femur.vertices(LMIdx.ProximoposteriorLateralCondyle,:);
+    drawPoint3d(debugAxH2, PPLC,'MarkerFaceColor','r','MarkerEdgeColor','r');
+    text(debugAxH2, PPLC(1),PPLC(2),PPLC(3),'PPLC')
 end
 
 %% Construct the femoral CS
@@ -392,6 +399,8 @@ LM.MedialPosteriorCondyle = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
 LM.LateralPosteriorCondyle = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
 LM.GreaterTrochanter = femur.vertices(LMIdx.GreaterTrochanter,:);
 LM.LesserTrochanter = femur.vertices(LMIdx.LesserTrochanter,:);
+LM.ProximoposteriorMedialCondyle = femur.vertices(LMIdx.ProximoposteriorMedialCondyle,:);
+LM.ProximoposteriorLateralCondyle = femur.vertices(LMIdx.ProximoposteriorLateralCondyle,:);
 if isfield(LMIdx,'PosteriorTrochantericCrest')
     LM.PosteriorTrochantericCrest = femur.vertices(LMIdx.PosteriorTrochantericCrest,:);
 end
