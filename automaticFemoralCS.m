@@ -74,11 +74,11 @@ femurInertia = transformPoint3d(femur, inv(femurProps.inverseInertiaTFM));
 
 % For left femurs reflect along the x-axis after inertia transform
 if strcmp(side, 'L')
-    xReflection=eye(4);
-    xReflection(1,1)=-1;
-    femurInertia.vertices=transformPoint3d(femurInertia.vertices, xReflection);
+    xReflection = eye(4);
+    xReflection(1,1) = -1;
+    femurInertia.vertices = transformPoint3d(femurInertia.vertices, xReflection);
     % Orient the normals outwards after reflection
-    femurInertia.faces=fliplr(femurInertia.faces);
+    femurInertia.faces = fliplr(femurInertia.faces);
 end
 
 if debugVisu
@@ -374,18 +374,21 @@ if debugVisu
     text(debugAxH2, PPLC(1),PPLC(2),PPLC(3),'PPLC')
 end
 
+%% Detection of the tabletop plane
+LMIdx = detectTabletopPlane(femur, side, HJC, LMIdx, 'visu', debugVisu);
+
 %% Construct the femoral CS
 switch definition
     case 'wu2002'
         fwTFM2AFCS = Wu2002(femur,side,HJC,LMIdx, 'visu',visu);
     case 'wubergmanncomb'
-        [fwTFM2AFCS, LMIdx] = WuBergmannComb(femur,side,HJC,LMIdx, 'visu',visu);
+        fwTFM2AFCS = WuBergmannComb(femur,side,HJC,LMIdx, 'visu',visu);
     case 'bergmann2016'
-        [fwTFM2AFCS, LMIdx] = Bergmann2016(femur, side, HJC, LMIdx, 'visu',visu);
+        fwTFM2AFCS = Bergmann2016(femur, side, HJC, LMIdx, 'visu',visu);
     case 'tabletop'
-        [fwTFM2AFCS, LMIdx] = Tabletop(femur, side, HJC, LMIdx, 'visu',visu);
+        fwTFM2AFCS = Tabletop(femur, side, HJC, LMIdx, 'visu',visu);
     case 'tabletopmeditec'
-        [fwTFM2AFCS, LMIdx] = TabletopMediTEC(femur, side, HJC, LMIdx, 'visu',visu);
+        fwTFM2AFCS = TabletopMediTEC(femur, side, HJC, LMIdx, 'visu',visu);
 end
 
 %% Save landmarks in cartesian coordinates in input femur CS
@@ -401,8 +404,6 @@ LM.GreaterTrochanter = femur.vertices(LMIdx.GreaterTrochanter,:);
 LM.LesserTrochanter = femur.vertices(LMIdx.LesserTrochanter,:);
 LM.ProximoposteriorMedialCondyle = femur.vertices(LMIdx.ProximoposteriorMedialCondyle,:);
 LM.ProximoposteriorLateralCondyle = femur.vertices(LMIdx.ProximoposteriorLateralCondyle,:);
-if isfield(LMIdx,'PosteriorTrochantericCrest')
-    LM.PosteriorTrochantericCrest = femur.vertices(LMIdx.PosteriorTrochantericCrest,:);
-end
+LM.PosteriorTrochantericCrest = femur.vertices(LMIdx.PosteriorTrochantericCrest,:);
 
 end

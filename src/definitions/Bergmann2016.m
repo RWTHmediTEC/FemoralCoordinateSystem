@@ -1,4 +1,4 @@
-function [TFM, LMIdx] = Bergmann2016(femur, side, HJC, LMIdx, varargin)
+function TFM = Bergmann2016(femur, side, HJC, LMIdx, varargin)
 
 % 2016 - Bergmann et al. - Standardized Loads Acting in Hip Implants:
 %   "The origin of this coordinate system is located at the centre of the 
@@ -28,7 +28,7 @@ ShaftAxis = createLine3d(femur.vertices(LMIdx.ShaftAxis(1),:),femur.vertices(LMI
 
 %% Construction of P1
 [~, P1, ~] = distanceLines3d(NeckAxis, ShaftAxis);
-StraightFemurAxis=createLine3d(ICN, P1);
+StraightFemurAxis = createLine3d(ICN, P1);
 
 %% inital transformation
 % Connection of the most posterior points of the condyles
@@ -38,51 +38,14 @@ Z = normalizeVector3d(StraightFemurAxis(4:6));
 Y = normalizeVector3d(crossProduct3d(StraightFemurAxis(4:6), PosteriorCondyleAxis(4:6)));
 X = normalizeVector3d(crossProduct3d(Y, Z));
 
-iTFM = [[X;Y;Z],[0 0 0]'; [0 0 0 1]]*createTranslation3d(-HJC);
+TFM = [[X;Y;Z],[0 0 0]'; [0 0 0 1]]*createTranslation3d(-HJC);
 % If it is a left femur, rotate 180° around the Z axis
 if strcmp(side, 'L')
-    iTFM = createRotationOz(pi)*iTFM;
+    TFM = createRotationOz(pi)*TFM;
 end
-
-%% refinement
-% transform the mesh by the initial TFM
-iMesh=transformPoint3d(femur, iTFM);
-% get the length of the femur
-iLength = abs(max(iMesh.vertices(:,3)))+abs(min(iMesh.vertices(:,3)));
-% cut off the distal part
-DISTAL_FACTOR = 1/6;
-distalPlane=[0 0 DISTAL_FACTOR*iLength+min(iMesh.vertices(:,3)), 1 0 0, 0 1 0];
-distalPart = cutMeshByPlane(iMesh, distalPlane, 'part','below');
-% cut the distal part into the medial and lateral condyle
-sagittalPlane=createPlane(transformPoint3d(ICN, iTFM), [1 0 0]);
-[LCMesh, ~, MCMesh] = cutMeshByPlane(distalPart, sagittalPlane);
-
-% start refinement: find the most posterior points of the condyles and
-% rotate them into the new posterior condyle line
-[tempRot, MPC, LPC] = refinePosteriorCondyleAxis(MCMesh, LCMesh);
-refRot = tempRot;
-while ~isequal(eye(4), tempRot)
-    MCMesh.vertices=transformPoint3d(MCMesh.vertices, tempRot);
-    LCMesh.vertices=transformPoint3d(LCMesh.vertices, tempRot);
-    [tempRot, MPC, LPC] = refinePosteriorCondyleAxis(MCMesh, LCMesh);
-    refRot = tempRot*refRot;
-end
-
-% combination
-TFM=refRot*iTFM;
 
 % The femur in the AFCS
 femurCS = transformPoint3d(femur, TFM);
-
-% Get the index of the most posterior point of the condyle
-switch side
-    case 'R'
-        LMIdx.MedialPosteriorCondyle = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
-        LMIdx.LateralPosteriorCondyle = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
-    case 'L'
-        LMIdx.MedialPosteriorCondyle = find(ismembertol(femurCS.vertices, LPC,'ByRows',true'));
-        LMIdx.LateralPosteriorCondyle = find(ismembertol(femurCS.vertices, MPC,'ByRows',true'));
-end
 
 %% visualization
 if visu
@@ -96,7 +59,8 @@ if visu
     drawAxis3d(axH,35,1.5)
     
     % Landmarks
-    drawPoint3d(transformPoint3d(P1, TFM),'MarkerFaceColor','k','MarkerEdgeColor','k')
+    drawPoint3d(transformPoint3d([P1; ICN], TFM),...
+        'MarkerFaceColor','k','MarkerEdgeColor','k')
     % Axes
     edgeProps.LineStyle='-';
     edgeProps.Color='k';
@@ -118,21 +82,5 @@ if visu
     
     anatomicalViewButtons(axH,'RAS')
 end
-end
-
-function [ROT, MPC, LPC] = refinePosteriorCondyleAxis(MCMesh, LCMesh)
-
-% Get the index of the most posterior point of the condyle
-[~, MPC_Idx] = min(MCMesh.vertices(:,2));
-[~, LPC_Idx] = min(LCMesh.vertices(:,2));
-% Get the most posterior point of the condyle
-MPC=MCMesh.vertices(MPC_Idx,:);
-LPC=LCMesh.vertices(LPC_Idx,:);
-% Construct the rotation into the most posterior points
-PosteriorCondyleAxis=createLine3d(MPC, LPC);
-Z = [0 0 1];
-Y = normalizeVector3d(crossProduct3d(Z, PosteriorCondyleAxis(4:6)));
-X = normalizeVector3d(crossProduct3d(Y, Z));
-ROT = [[X; Y; Z; 0 0 0], [0 0 0 1]'];
 
 end
