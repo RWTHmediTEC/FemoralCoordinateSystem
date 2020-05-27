@@ -281,6 +281,7 @@ if debugVisu
     drawVector3d(debugAxH2, debugNeckOrthogonal(1:3),debugNeckOrthogonal(4:6)*100,'-.b');
 end
 
+
 %% Refinement of the neck axis
 disp('_______________ Detection of the anatomical neck axis ________________')
 NeckAxis = ANA(femur.vertices, femur.faces, side, ...
@@ -301,8 +302,13 @@ NeckOrthogonal(4:6) = crossProduct3d(NeckAxis(4:6), ShaftAxis(4:6));
 if strcmp(side, 'L'); NeckOrthogonal(4:6)=-NeckOrthogonal(4:6); end
 LMIdx.NeckOrthogonal = lineToVertexIndices(NeckOrthogonal, femur);
 
+
+%% Detection of the tabletop plane
+LMIdx = detectTabletopPlane(femur, side, HJC, LMIdx, 'visu', debugVisu);
+
+
 %% Refinement of the epicondyles
-disp('________________ Refinement of the epicondyles (beta) ________________')
+disp('___________________ Refinement of the epicondyles ____________________')
 % Axis through the epicondyles in the inertia system
 CondyleAxisInertia = createLine3d(...
     femurInertia.vertices(LMIdx.MedialEpicondyle,:),...
@@ -315,18 +321,16 @@ ShaftAxisInertia(4:6)=normalizeVector3d(ShaftAxisInertia(4:6));
 
 % Cut the distal femur in the inertia system
 if CondyleAxisInertia(1)>0; cutDir=1; else; cutDir=-1; end
-distalCutPlaneInertia=createPlane([cutDir*1/4*femurInertiaLength 0 0], -ShaftAxisInertia(4:6));
+distalCutPlaneInertia = createPlane([cutDir*1/4*femurInertiaLength 0 0], -ShaftAxisInertia(4:6));
 distalFemurInertia = cutMeshByPlane(femurInertia, distalCutPlaneInertia);
 
 % Transform into the inital USP CS
-Y = normalizeVector3d(ShaftAxisInertia(4:6));
-X = normalizeVector3d(crossProduct3d(ShaftAxisInertia(4:6), CondyleAxisInertia(4:6)));
-Z = normalizeVector3d(crossProduct3d(X, Y));
-
+uspPreTFM = anatomicalOrientationTFM('RAS','ASR') * ...
+    Tabletop(femurInertia, 'R', HJC, LMIdx, 'visu', false);
 % The inertia femur is always a right femur because left femurs are mirrored
 [USP_TFM, PFEA, CEA] = USP(distalFemurInertia.vertices, distalFemurInertia.faces, ...
     'R', ...
-    rotation3dToEulerAngles([X; Y; Z], 'ZYX'), ...
+    rotation3dToEulerAngles(uspPreTFM(1:3,1:3), 'ZYX'), ...
     'visu',debugVisu, ...
     'verbose',verb, ...
     'subject',subject);
@@ -356,7 +360,7 @@ if debugVisu
 end
 
 %% Refinement of the Intercondylar Notch (ICN)
-extremePoints = distalFemurExtremePoints(distalFemurUSP, 'Right', PFEA, 'visu', debugVisu, 'debug',0);
+extremePoints = distalFemurExtremePoints(distalFemurUSP, 'R', PFEA, 'visu', debugVisu, 'debug',0);
 extremePointsInertia = structfun(@(x) transformPoint3d(x, inv(USP_TFM)), extremePoints,'uni',0);
 [~, LMIdx.IntercondylarNotch] = pdist2(femurInertia.vertices, ...
     extremePointsInertia.Intercondylar, 'euclidean','Smallest',1);
