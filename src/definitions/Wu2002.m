@@ -48,32 +48,32 @@ end
 %% visualization
 if visu
     % Patch properties
-    patchProps.EdgeColor = 'none';
-    patchProps.FaceColor = [223, 206, 161]/255;
     patchProps.FaceAlpha = 0.75;
-    patchProps.EdgeLighting = 'gouraud';
-    patchProps.FaceLighting = 'gouraud';
     % The femur in the AFCS
     femurCS = transformPoint3d(femur, TFM);
-    visualizeMeshes(femurCS, patchProps)
+    [~, axH] = visualizeMeshes(femurCS, patchProps);
     
     % Coordinate system
-    drawAxis3d(35,1.5)
+    drawAxis3d(axH, 35,1.5)
     
     % Landmarks
+    LM_Idx = struct2cell(LMIdx);
+    LM_Idx = cell2mat(LM_Idx(structfun(@(x) length(x) == 1, LMIdx)));
+    drawPoint3d(axH, femurCS.vertices(LM_Idx, :),...
+        'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',2)
     drawPoint3d(transformPoint3d(MEC_LEC_midPoint, TFM),...
         'MarkerFaceColor','k','MarkerEdgeColor','k')
-    drawLine3d(transformLine3d(MechanicalAxis, TFM),'k')
+    drawLine3d(axH, transformLine3d(MechanicalAxis, TFM),'k')
     edgeProps.LineStyle='-';
     edgeProps.Color='k';
     edgeProps.Marker='o';
     edgeProps.MarkerEdgeColor='k';
     edgeProps.MarkerFaceColor='k';
-    EC_TFM=[transformPoint3d(MEC,TFM);transformPoint3d(LEC,TFM)];
-    drawEdge3d(EC_TFM(1,:),EC_TFM(2,:),edgeProps)
-    text(EC_TFM(:,1),EC_TFM(:,2),EC_TFM(:,3),{'MEC';'LEC'})
+    EC_TFM = [transformPoint3d(MEC,TFM);transformPoint3d(LEC,TFM)];
+    drawEdge3d(axH, EC_TFM(1,:),EC_TFM(2,:),edgeProps)
+    text(axH, EC_TFM(:,1),EC_TFM(:,2),EC_TFM(:,3),{'MEC';'LEC'})
     
-    anatomicalViewButtons('ASR')
+    anatomicalViewButtons(axH, 'ASR')
 end
 
 end

@@ -44,21 +44,21 @@ if strcmp(side, 'L')
     TFM = createRotationOz(pi)*TFM;
 end
 
-% The femur in the AFCS
-femurCS = transformPoint3d(femur, TFM);
-
 %% visualization
 if visu
+    % The femur in the AFCS
+    femurCS = transformPoint3d(femur, TFM);
+    
     % Patch properties
-    patchProps.EdgeColor = 'none';
-    patchProps.FaceColor = [223, 206, 161]/255;
     patchProps.FaceAlpha = 0.75;
-    patchProps.EdgeLighting = 'gouraud';
-    patchProps.FaceLighting = 'gouraud';
-    [~,axH]=visualizeMeshes(femurCS, patchProps);
+    [~, axH] = visualizeMeshes(femurCS, patchProps);
     drawAxis3d(axH,35,1.5)
     
     % Landmarks
+    LM_Idx = struct2cell(LMIdx);
+    LM_Idx = cell2mat(LM_Idx(structfun(@(x) length(x) == 1, LMIdx)));
+    drawPoint3d(femurCS.vertices(LM_Idx, :),...
+        'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',2)
     drawPoint3d(transformPoint3d([P1; ICN], TFM),...
         'MarkerFaceColor','k','MarkerEdgeColor','k')
     % Axes

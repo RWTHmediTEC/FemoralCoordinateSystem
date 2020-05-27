@@ -35,24 +35,24 @@ if strcmp(side, 'L')
     TFM=createRotationOy(pi)*TFM;
 end
 
-% The femur in the AFCS
-femurCS = transformPoint3d(femur, TFM);
-
 %% visualization
 if visu
+    % The femur in the AFCS
+    femurCS = transformPoint3d(femur, TFM);
+    
     % Patch properties
-    patchProps.EdgeColor = 'none';
-    patchProps.FaceColor = [223, 206, 161]/255;
     patchProps.FaceAlpha = 0.75;
-    patchProps.EdgeLighting = 'gouraud';
-    patchProps.FaceLighting = 'gouraud';
-    [~,axH]=visualizeMeshes(femurCS, patchProps);
-    drawAxis3d(axH,35,1.5)
+    [~, axH] = visualizeMeshes(femurCS, patchProps);
+    drawAxis3d(axH, 35,1.5)
     
     % Landmarks
-    drawPoint3d(transformPoint3d(ICN, TFM),'MarkerFaceColor','k','MarkerEdgeColor','k')
+    LM_Idx = struct2cell(LMIdx);
+    LM_Idx = cell2mat(LM_Idx(structfun(@(x) length(x) == 1, LMIdx)));
+    drawPoint3d(axH, femurCS.vertices(LM_Idx, :),...
+        'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',2)
+    drawPoint3d(axH, transformPoint3d(ICN, TFM),'MarkerFaceColor','k','MarkerEdgeColor','k')
     % Axes
-    drawLine3d(transformLine3d(MechanicalAxis, TFM),'k')
+    drawLine3d(axH, transformLine3d(MechanicalAxis, TFM),'k')
     edgeProps.LineStyle='-';
     edgeProps.Color='k';
     edgeProps.Marker='o';
@@ -61,11 +61,11 @@ if visu
     
     PC=[femurCS.vertices(LMIdx.MedialPosteriorCondyle,:);...
         femurCS.vertices(LMIdx.LateralPosteriorCondyle,:)];
-    drawEdge3d(PC(1,:),PC(2,:), edgeProps)
+    drawEdge3d(axH, PC(1,:),PC(2,:), edgeProps)
     
-    text(PC(:,1),PC(:,2),PC(:,3),{'MPC';'LPC'})
+    text(axH, PC(:,1),PC(:,2),PC(:,3),{'MPC';'LPC'})
     
-    anatomicalViewButtons('ASR')
+    anatomicalViewButtons(axH, 'ASR')
 end
 
 end

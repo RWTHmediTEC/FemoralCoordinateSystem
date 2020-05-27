@@ -28,6 +28,9 @@ function [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, side, varargin
 %   fwTFM2AFCS: Forward transformation of the femur into the femoral CS
 %   LMIdx: Landmark indices into the vertices of the femur
 %
+% TODO:
+%   - Add option to select of anatomical orientation of the femur CS
+%
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
 % VERSION: 1.0.3
@@ -329,7 +332,7 @@ Z = normalizeVector3d(crossProduct3d(X, Y));
     'subject',subject);
 
 % Transform distal femur into the USP CS
-distalFemurUSP=transformPoint3d(distalFemurInertia, USP_TFM);
+distalFemurUSP = transformPoint3d(distalFemurInertia, USP_TFM);
 % Get the morphing points of the epicodyles in USP CS
 MEC_morph_USP=transformPoint3d(femurInertia.vertices(LMIdx.MedialEpicondyle,:), USP_TFM);
 LEC_morph_USP=transformPoint3d(femurInertia.vertices(LMIdx.LateralEpicondyle,:), USP_TFM);

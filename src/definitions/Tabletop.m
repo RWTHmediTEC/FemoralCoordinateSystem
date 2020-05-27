@@ -54,8 +54,14 @@ if visu
     patchProps.FaceAlpha = 0.75;
     patchProps.EdgeLighting = 'gouraud';
     patchProps.FaceLighting = 'gouraud';
-    [~,axH]=visualizeMeshes(femurCS, patchProps);
-    drawAxis3d(axH,35,1.5)
+    [~, axH] = visualizeMeshes(femurCS, patchProps);
+    drawAxis3d(axH, 35,1.5)
+    
+    % Landmarks
+    LM_Idx = struct2cell(LMIdx);
+    LM_Idx = cell2mat(LM_Idx(structfun(@(x) length(x) == 1, LMIdx)));
+    drawPoint3d(axH, femurCS.vertices(LM_Idx, :),...
+        'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',2)
     
     % Tabletop patch
     patchProps.LineStyle='-';
@@ -69,17 +75,17 @@ if visu
     tablePatch.vertices=[MPC; LPC; PTC];
     tablePatch.faces=[1 2 3];
     
-    patch(tablePatch, patchProps)
+    patch(axH, tablePatch, patchProps)
     
     textPosX=1/3*(MPC(1)+LPC(1)+PTC(1));
     textPosY=MPC(2);
     textPosZ=1/3*(MPC(3)+LPC(3)+PTC(3));
-    text(textPosX,textPosY,textPosZ,'Tabletop plane','Rotation',90)
+    text(axH, textPosX,textPosY,textPosZ,'Tabletop plane','Rotation',90)
     
-    text(tablePatch.vertices(:,1),tablePatch.vertices(:,2),tablePatch.vertices(:,3),...
+    text(axH, tablePatch.vertices(:,1),tablePatch.vertices(:,2),tablePatch.vertices(:,3),...
         {'MPC';'LPC';'PTC'})
     
-    anatomicalViewButtons('RAS')
+    anatomicalViewButtons(axH, 'RAS')
 end
 
 end
