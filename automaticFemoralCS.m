@@ -85,77 +85,85 @@ if strcmp(side, 'L')
 end
 
 if debugVisu
-    % Patch properties
-    patchProps.EdgeColor = [0.5 0.5 0.5];
-    patchProps.FaceColor = [.75 .75 .75];
-    patchProps.FaceAlpha = 1;
-    patchProps.EdgeLighting = 'gouraud';
-    patchProps.FaceLighting = 'gouraud';
+    NOP = 7;
+    BW = 0.005;
+    BSX = (1-(NOP+1)*BW)/NOP;
+    set(0,'defaultAxesFontSize',14)
+    debugFigH1 = figure('Units','pixels','renderer','opengl', 'Color', 'w', 'WindowState', 'maximized');
+    debugFigH1.Name = [subject ': nICP registration (Debug Figure)'];
+    debugFigH1.NumberTitle = 'off';
+    
+    tPH = uipanel('Title','Subject''s principal axes transf. ','FontSize',14,'BorderWidth',2,...
+        'BackgroundColor','w','Position',[BW+(BSX+BW)*0 0.01 BSX 0.99]);
+    tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
     
     % The femur in the inertia CS
-    [~, ~, debugFigH1]=visualizeMeshes(femurInertia, patchProps);
-    set(debugFigH1, 'Name', [subject ': nICP registration (Debug Figure)'], 'NumberTitle', 'Off')
-    hold on
+    visualizeMeshes(tAH, femurInertia);
+    view(tAH,[-90,90]); axis(tAH, 'tight');
 end
 
 % Load template mesh
 load('template.mat','template')
-if debugVisu
-    % The template in the template CS
-    patchProps.EdgeColor = 'none';
-    patchProps.FaceColor = 'y';
-    patchProps.FaceAlpha = 0.75;
-    patch(template, patchProps)
-%     load('template_areas.mat','areas')
-%     tempAreaIdx=areas{1,2} | areas{2,2} | areas{3,2};
-%     patch('vertices',template.vertices,'faces',template.faces(~tempAreaIdx,:), patchProps)    
-%     patchProps.FaceColor = 'r';
-%     patchProps.FaceAlpha = 1;
-%     patch('vertices',template.vertices,'faces',template.faces(tempAreaIdx,:), patchProps)
-%     load('template_landmarks.mat','landmarks')
-%     drawPoint3d(template.vertices(cell2mat(struct2cell(landmarks)),:),...
-%         'MarkerFaceColor','r','MarkerEdgeColor','r')
-end
 
 % Length of the template femur
-templateLength=max(template.vertices(:,1))-min(template.vertices(:,1));
+templateLength = max(template.vertices(:,1))-min(template.vertices(:,1));
 % Length of the input femur
-femurInertiaLength=max(femurInertia.vertices(:,1))-min(femurInertia.vertices(:,1));
+femurInertiaLength = max(femurInertia.vertices(:,1))-min(femurInertia.vertices(:,1));
 
 % Scale input femur in x-direction
-xScale=templateLength/femurInertiaLength;
-TFM2xScaling=eye(4); TFM2xScaling(1,1)=xScale;
-femurxScaling=transformPoint3d(femurInertia, TFM2xScaling);
+xScale = templateLength/femurInertiaLength;
+TFM2xScaling = eye(4); TFM2xScaling(1,1) = xScale;
+femurXScaling = transformPoint3d(femurInertia, TFM2xScaling);
 if debugVisu
+    tPH = uipanel('Title','Template & length adj. subject','FontSize',14,'BorderWidth',2,...
+        'BackgroundColor','w','Position',[BW+(BSX+BW)*1 0.01 BSX 0.99]);
+    tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
+    view(tAH,[-90,90]); axis(tAH, 'tight');
     % The scaled femur in the inertia CS
-    patchProps.FaceColor = 'g';
-    patch(femurxScaling, patchProps)
+    visualizeMeshes(tAH, femurXScaling);
+    patchProps.EdgeColor = 'none';
+    patchProps.FaceColor = 'y';
+    patchProps.FaceLighting = 'gouraud';
+    % The template in the template CS
+    patch(tAH, template, patchProps);
 end
 
 % Rough pre-registration
-femurPreReg.vertices = roughPreRegistration(template.vertices, femurxScaling.vertices);
+femurPreReg.vertices = roughPreRegistration(template.vertices, femurXScaling.vertices);
 femurPreReg.faces = femurInertia.faces;
 if debugVisu
+    tPH = uipanel('Title','Rough pre-registration','FontSize',14,'BorderWidth',2,...
+        'BackgroundColor','w','Position',[BW+(BSX+BW)*2 0.01 BSX 0.99]);
+    tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
+    view(tAH,[-90,90]); axis(tAH, 'tight');
     % The femur in the pre-registration CS
-    patchProps.FaceColor = 'b';
-    patch(femurPreReg, patchProps)
+    visualizeMeshes(tAH, femurPreReg);
+    patch(template, patchProps)
 end
 
 % Register femoral condyles
 femurCondReg.vertices = regFemoralCondyles(template.vertices, femurPreReg.vertices);
 femurCondReg.faces = femurPreReg.faces;
 if debugVisu
+    tPH = uipanel('Title','Condyle registration','FontSize',14,'BorderWidth',2,...
+        'BackgroundColor','w','Position',[BW+(BSX+BW)*3 0.01 BSX 0.99]);
+    tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
+    view(tAH,[-90,90]); axis(tAH, 'tight');
     % The femur in the ... CS
-    patchProps.FaceColor = 'w';
-    patch(femurCondReg, patchProps)
+    visualizeMeshes(tAH, femurCondReg);
+    patch(template, patchProps)
 end
 
 % Adapt femoral version of the template
 templatePreReg.vertices = adjustTemplateFemoralVersion(template.vertices, femurCondReg.vertices);
 templatePreReg.faces = template.faces;
 if debugVisu
+    tPH = uipanel('Title','Neck & head registration','FontSize',14,'BorderWidth',2,...
+        'BackgroundColor','w','Position',[BW+(BSX+BW)*4 0.01 BSX 0.99]);
+    tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
+    view(tAH,[-90,90]); axis(tAH, 'tight');
     % The template in the ... CS
-    patchProps.FaceColor = 'm';
+    visualizeMeshes(tAH, femurCondReg);
     patch(templatePreReg, patchProps)
 end
 
@@ -166,8 +174,12 @@ templateNICP = nonRigidICP(templatePreReg, femurCondReg, ...
     'alpha', NRICP_ALPHA,...
     'verbosity', double(verb));
 if debugVisu
+    tPH = uipanel('Title','Non-rigid ICP registration','FontSize',14,'BorderWidth',2,...
+        'BackgroundColor','w','Position',[BW+(BSX+BW)*5 0.01 BSX 0.99]);
+    tAH5 = axes('Parent', tPH, 'Visible','off', 'Color','w');
+    view(tAH5,[-90,90]); axis(tAH5, 'tight');
     % The femur after NICP registration
-    patchProps.FaceColor = 'c';
+    visualizeMeshes(tAH5, femurCondReg);
     patch(templateNICP, patchProps)
 end
 
@@ -175,6 +187,10 @@ end
 femurCondRegKDTree=createns(femurCondReg.vertices);
 % Landmarks
 load('template_landmarks.mat','landmarks')
+if debugVisu
+    drawPoint3d(tAH5, templateNICP.vertices(cell2mat(struct2cell(landmarks)),:),...
+        'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',3)
+end
 % Search the nearest neighbour of the landmarks on the NICP registered
 % template to the vertices of the pre-registered femur. Return vertex
 % indices.
@@ -185,12 +201,19 @@ for lm=1:length(landmarksIdx)
     LMIdx.(LMNames{lm})=landmarksIdx(lm);
 end
 if debugVisu
-    drawPoint3d(femurInertia.vertices(landmarksIdx,:),...
-        'MarkerFaceColor','r','MarkerEdgeColor','r')
+    tPH = uipanel('Title','Mapping to the subject','FontSize',14,'BorderWidth',2,...
+        'BackgroundColor','w','Position',[BW+(BSX+BW)*6 0.01 BSX 0.99]);
+    tAH6 = axes('Parent', tPH, 'Visible','off', 'Color','w');
+    view(tAH6,[-90,90]); axis(tAH6, 'tight');
+    visualizeMeshes(tAH6, femurInertia);
+    drawPoint3d(tAH6, femurInertia.vertices(landmarksIdx,:),...
+        'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',3)
 end
 
 % Areas
 load('template_areas.mat','areas')
+% Delete not required area
+areas(3,:)=[];
 areas=[areas,cell(size(areas,1),1)];
 for a=1:size(areas,1)
     tempFaces = template.faces(areas{a,2},:);
@@ -201,16 +224,11 @@ for a=1:size(areas,1)
     % indices.
     areas{a,3} = knnsearch(femurCondRegKDTree, tempVertices);
     if debugVisu
-        drawPoint3d(femurInertia.vertices(areas{a,3},:),...
-            'MarkerFaceColor','r','MarkerEdgeColor','r')
+        drawPoint3d(tAH5, tempVertices,...
+            'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',3)
+        drawPoint3d(tAH6, femurInertia.vertices(areas{a,3},:),...
+            'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',3)
     end
-end
-
-if debugVisu
-    legend({'Source Inertia','Template','Source Scaled',...
-        'Source Pre-Registered','Source Condyle-Registered',...
-        'Template Version-Registered','Template nICP'})
-    mouseControl3d
 end
 
 %% Extract parameter
@@ -283,7 +301,7 @@ end
 
 
 %% Refinement of the neck axis
-disp('_______________ Detection of the anatomical neck axis ________________')
+disp('_______________ Refinement of the anatomical neck axis ________________')
 NeckAxis = ANA(femur.vertices, femur.faces, side, ...
     LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,...
     'visu', debugVisu,'verbose',verb,'subject', subject);
@@ -381,8 +399,9 @@ if debugVisu
     text(debugAxH2, PPLC(1),PPLC(2),PPLC(3),'PPLC')
 end
 
-%% Detection of the tabletop plane
+%% Repeat the detection of the tabletop plane
 LMIdx = detectTabletopPlane(femur, side, HJC, LMIdx, 'visu', debugVisu);
+
 
 %% Construct the femoral CS
 switch definition

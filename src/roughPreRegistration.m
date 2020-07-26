@@ -25,7 +25,7 @@ MM1=nan(1,NoS);
 MM2=nan(1,NoS);
 
 for i = 1:length(RX)
-    theta = degtorad(Steps(i));
+    theta = deg2rad(Steps(i));
     % switch axis  % create rotation
     % case 'X' % around x-axis
     RX{i} = [1 0 0; 0 cos(theta) -sin(theta); 0 sin(theta) cos(theta)];
