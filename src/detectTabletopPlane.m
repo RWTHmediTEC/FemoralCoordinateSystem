@@ -13,36 +13,13 @@ addOptional(p,'visualization',true,@islogical);
 parse(p,femur,side,varargin{:});
 
 femur = p.Results.femur;
-visu = p.Results.visualization;
-
-%% Landmarks
-MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
-LPC = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
-ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
-
-%% Construction of an inital system
-MechanicalAxis = createLine3d(ICN, HJC);
+visu = logical(p.Results.visualization);
 
 %% Inital transformation (iTFM)
-% Connection of the most posterior points of the condyles
-PosteriorCondyleAxis = createLine3d(MPC, LPC);
-
-Z = normalizeVector3d(MechanicalAxis(4:6));
-Y = normalizeVector3d(crossProduct3d(MechanicalAxis(4:6), PosteriorCondyleAxis(4:6)));
-X = normalizeVector3d(crossProduct3d(Y, Z));
-
-iTFM = [[X;Y;Z],[0 0 0]'; [0 0 0 1]]*createTranslation3d(-HJC);
-% If it is a left femur, mirror to right side
-if strcmp(side, 'L')
-    mirrorTFM = eye(4); mirrorTFM(1,1) = -1;
-    iTFM = mirrorTFM*createRotationOz(pi)*iTFM;
-end
+iTFM = Tabletop(femur, side, HJC, LMIdx, 'visu', visu);
 
 % Transform the mesh by the inital TFM
 iFemur = transformPoint3d(femur, iTFM);
-if strcmp(side, 'L')
-    iFemur.faces = fliplr(iFemur.faces);
-end
 
 NeckAxis = createLine3d(iFemur.vertices(LMIdx.NeckAxis(1),:),iFemur.vertices(LMIdx.NeckAxis(2),:));
 NeckOrthogonal = createLine3d(iFemur.vertices(LMIdx.NeckOrthogonal(1),:),iFemur.vertices(LMIdx.NeckOrthogonal(2),:));
@@ -111,7 +88,7 @@ TFM = refROT*iTFM;
 % The femur in the AFCS
 femurCS = transformPoint3d(femur, TFM);
 
-% Sanity check
+% Sanity checks
 tabletopPlane = createPlane(LPC, MPC, PTC);
 assert(sum(isBelowPlane(MCMesh.vertices, tabletopPlane)) <= 1)
 assert(any(isBelowPlane(LCMesh.vertices, tabletopPlane)) <= 1)
@@ -122,54 +99,19 @@ MPC_Idx = find(ismembertol(femurCS.vertices, MPC, 'ByRows',true'));
 LPC_Idx = find(ismembertol(femurCS.vertices, LPC, 'ByRows',true'));
 PTC_Idx = find(ismembertol(femurCS.vertices, PTC, 'ByRows',true'));
 
-LMIdx.MedialPosteriorCondyle = MPC_Idx;
-LMIdx.LateralPosteriorCondyle = LPC_Idx;
+switch side
+    case 'R'
+        LMIdx.MedialPosteriorCondyle = MPC_Idx;
+        LMIdx.LateralPosteriorCondyle = LPC_Idx;
+    case 'L'
+        LMIdx.MedialPosteriorCondyle = LPC_Idx;
+        LMIdx.LateralPosteriorCondyle = MPC_Idx;
+end
 LMIdx.PosteriorTrochantericCrest = PTC_Idx;
 
 %% visualization
-if visu
-    % Patch properties
-    patchProps.EdgeColor = 'none';
-    patchProps.FaceColor = [223, 206, 161]/255;
-    patchProps.FaceAlpha = 0.75;
-    patchProps.EdgeLighting = 'gouraud';
-    patchProps.FaceLighting = 'gouraud';
-    [~,axH] = visualizeMeshes(femurCS, patchProps);
-    drawAxis3d(axH,35,1.5)
-    
-    % Landmarks
-    drawPoint3d([MPC; LPC; PTC],'MarkerFaceColor','k','MarkerEdgeColor','k')
-    % Axes
-    drawLine3d(transformLine3d(NeckAxis, TFM))
-    % Tabletop patch
-    patchProps.LineStyle='none';
-    patchProps.LineWidth = 2;
-    patchProps.Marker='o';
-    patchProps.MarkerFaceColor='k';
-    patchProps.MarkerEdgeColor='k';
-    patchProps.FaceColor='k';
-    patchProps.FaceAlpha=0.75;
-    patchProps.EdgeColor='none';
-    
-    tablePatch.vertices=[...
-        femurCS.vertices(MPC_Idx,:);...
-        femurCS.vertices(LPC_Idx,:);...
-        femurCS.vertices(PTC_Idx,:)];
-    tablePatch.faces=1:3;
-    
-    patch(tablePatch, patchProps)
-    
-    textPosX=1/3*(MPC(1)+LPC(1)+PTC(1));
-    textPosY=MPC(2);
-    textPosZ=1/3*(MPC(3)+LPC(3)+PTC(3));
-    
-    text(textPosX, textPosY, textPosZ, 'Tabletop plane','Rotation',90)
-    
-    text(tablePatch.vertices(:,1),tablePatch.vertices(:,2),tablePatch.vertices(:,3),...
-        {'MPC';'LPC';'PTC'})
-    
-    anatomicalViewButtons('RAS')
-end
+Tabletop(femur, side, HJC, LMIdx, 'visu', visu);
+
 
 end
 

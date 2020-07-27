@@ -313,6 +313,9 @@ NeckAxis = ANA(femur.vertices, femur.faces, side, ...
     'visu', debugVisu,'verbose',verb,'subject', subject);
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 if debugVisu
+    % For publication
+    % export_fig('Figure4', '-tif', '-r300')
+    
     debugNeckAxis = createLine3d(...
         femur.vertices(LMIdx.NeckAxis(1),:),...
         femur.vertices(LMIdx.NeckAxis(2),:));
@@ -404,9 +407,6 @@ if debugVisu
     drawPoint3d(debugAxH2, PPLC,'MarkerFaceColor','r','MarkerEdgeColor','r');
     text(debugAxH2, PPLC(1),PPLC(2),PPLC(3),'PPLC')
 end
-
-%% Repeat the detection of the tabletop plane
-LMIdx = detectTabletopPlane(femur, side, HJC, LMIdx, 'visu', debugVisu);
 
 
 %% Construct the femoral CS
