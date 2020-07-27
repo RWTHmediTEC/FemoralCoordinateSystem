@@ -99,7 +99,8 @@ if debugVisu
     
     % The femur in the inertia CS
     visualizeMeshes(tAH, femurInertia);
-    view(tAH,[-90,90]); axis(tAH, 'tight');
+    dFig1View = [90,-90];
+    view(tAH,dFig1View); axis(tAH, 'tight');
 end
 
 % Load template mesh
@@ -118,14 +119,14 @@ if debugVisu
     tPH = uipanel('Title','Template & length adj. subject','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*1 0.01 BSX 0.99]);
     tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(tAH,[-90,90]); axis(tAH, 'tight');
+    view(tAH,dFig1View); axis(tAH, 'tight');
     % The scaled femur in the inertia CS
     visualizeMeshes(tAH, femurXScaling);
-    patchProps.EdgeColor = 'none';
-    patchProps.FaceColor = 'y';
-    patchProps.FaceLighting = 'gouraud';
+    templateProps.EdgeColor = 'none';
+    templateProps.FaceColor = 'b';
+    templateProps.FaceLighting = 'gouraud';
     % The template in the template CS
-    patch(tAH, template, patchProps);
+    patch(tAH, template, templateProps);
 end
 
 % Rough pre-registration
@@ -135,10 +136,10 @@ if debugVisu
     tPH = uipanel('Title','Rough pre-registration','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*2 0.01 BSX 0.99]);
     tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(tAH,[-90,90]); axis(tAH, 'tight');
+    view(tAH,dFig1View); axis(tAH, 'tight');
     % The femur in the pre-registration CS
     visualizeMeshes(tAH, femurPreReg);
-    patch(template, patchProps)
+    patch(template, templateProps)
 end
 
 % Register femoral condyles
@@ -148,10 +149,10 @@ if debugVisu
     tPH = uipanel('Title','Condyle registration','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*3 0.01 BSX 0.99]);
     tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(tAH,[-90,90]); axis(tAH, 'tight');
+    view(tAH,dFig1View); axis(tAH, 'tight');
     % The femur in the ... CS
     visualizeMeshes(tAH, femurCondReg);
-    patch(template, patchProps)
+    patch(template, templateProps)
 end
 
 % Adapt femoral version of the template
@@ -161,10 +162,10 @@ if debugVisu
     tPH = uipanel('Title','Neck & head registration','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*4 0.01 BSX 0.99]);
     tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(tAH,[-90,90]); axis(tAH, 'tight');
+    view(tAH,dFig1View); axis(tAH, 'tight');
     % The template in the ... CS
     visualizeMeshes(tAH, femurCondReg);
-    patch(templatePreReg, patchProps)
+    patch(templatePreReg, templateProps)
 end
 
 % non-rigid ICP registration - mediTEC implementation
@@ -177,10 +178,10 @@ if debugVisu
     tPH = uipanel('Title','Non-rigid ICP registration','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*5 0.01 BSX 0.99]);
     tAH5 = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(tAH5,[-90,90]); axis(tAH5, 'tight');
+    view(tAH5,dFig1View); axis(tAH5, 'tight');
     % The femur after NICP registration
     visualizeMeshes(tAH5, femurCondReg);
-    patch(templateNICP, patchProps)
+    patch(templateNICP, templateProps)
 end
 
 % Mapping of landmarks and areas of the template to the source
@@ -204,7 +205,7 @@ if debugVisu
     tPH = uipanel('Title','Mapping to the subject','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*6 0.01 BSX 0.99]);
     tAH6 = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(tAH6,[-90,90]); axis(tAH6, 'tight');
+    view(tAH6,dFig1View); axis(tAH6, 'tight');
     visualizeMeshes(tAH6, femurInertia);
     drawPoint3d(tAH6, femurInertia.vertices(landmarksIdx,:),...
         'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',3)
@@ -229,6 +230,11 @@ for a=1:size(areas,1)
         drawPoint3d(tAH6, femurInertia.vertices(areas{a,3},:),...
             'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',3)
     end
+end
+
+if debugVisu
+    % For publication
+    % export_fig('Figure2', '-tif', '-r300')
 end
 
 %% Extract parameter
