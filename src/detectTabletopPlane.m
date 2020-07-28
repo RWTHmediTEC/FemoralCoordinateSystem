@@ -24,23 +24,8 @@ iFemur = transformPoint3d(femur, iTFM);
 NeckAxis = createLine3d(iFemur.vertices(LMIdx.NeckAxis(1),:),iFemur.vertices(LMIdx.NeckAxis(2),:));
 NeckOrthogonal = createLine3d(iFemur.vertices(LMIdx.NeckOrthogonal(1),:),iFemur.vertices(LMIdx.NeckOrthogonal(2),:));
 [~, NeckAxis(1:3), ~] = distanceLines3d(NeckAxis, NeckOrthogonal);
-ICN = iFemur.vertices(LMIdx.IntercondylarNotch,:);
-
-if visu
-    % Patch properties
-    patchProps.EdgeColor = 'none';
-    patchProps.FaceColor = [223, 206, 161]/255;
-    patchProps.FaceAlpha = 0.5;
-    patchProps.EdgeLighting = 'gouraud';
-    patchProps.FaceLighting = 'gouraud';
-    [~,axH] = visualizeMeshes(iFemur, patchProps);
-    drawAxis3d(axH, 35, 1.5)
-    
-    % Axes
-    drawVector3d(NeckAxis(1:3),NeckAxis(4:6))
-    
-    anatomicalViewButtons('RAS')
-end
+MPC = iFemur.vertices(LMIdx.MedialPosteriorCondyle,:);
+LPC = iFemur.vertices(LMIdx.LateralPosteriorCondyle,:);
 
 %% Resect condyles
 % Get the length of the femur
@@ -50,25 +35,34 @@ DISTAL_FACTOR = 1/6;
 distalPlane=[0 0 DISTAL_FACTOR*iLength+min(iFemur.vertices(:,3)), 1 0 0, 0 1 0];
 distalPart = cutMeshByPlane(iFemur, distalPlane, 'part','below');
 % Cut the distal part into the medial and lateral condyle
-sagittalPlane=createPlane(ICN, [1 0 0]);
+sagittalPlane=createPlane(midPoint3d(MPC,LPC), [1 0 0]);
 [LCMesh, ~, MCMesh]  = cutMeshByPlane(distalPart, sagittalPlane);
-if visu
-    patchProps.FaceAlpha = 1;
-    patchProps.FaceColor = 'r';
-    patch(LCMesh, patchProps);
-    patch(MCMesh, patchProps);
-end
 
 %% Resect proximal femur
 PROXIMAL_FACTOR = 2/6;
 proximalPlane=[0 0 -PROXIMAL_FACTOR*iLength, 1 0 0, 0 1 0];
-proximalPart = cutMeshByPlane(iFemur, proximalPlane, 'part','above');
+[proximalPart, ~, shaft] = cutMeshByPlane(iFemur, proximalPlane);
+shaft = cutMeshByPlane(shaft, distalPlane, 'part','above');
 % Resect the neck and the head
 if NeckAxis(6)>0; NeckAxis(4:6)=-NeckAxis(4:6); end
 neckPlane = createPlane(NeckAxis(1:3), NeckAxis(4:6));
-proximalPart = cutMeshByPlane(proximalPart, neckPlane, 'part','above');
+[proximalPart,~,head] = cutMeshByPlane(proximalPart, neckPlane);
 if visu
-    patch(proximalPart, patchProps);
+    % Patch properties
+    patchProps.EdgeColor = 'none';
+    patchProps.FaceAlpha = 0.5;
+    patchProps.FaceLighting = 'gouraud';
+    [~,axH,figH] = visualizeMeshes([head,shaft], patchProps); %#ok<ASGLU>
+    % drawAxis3d(axH, 35, 1.5)
+    
+    patchProps.FaceAlpha = 1;
+    patchProps.FaceColor = 'r';
+    patch(axH, LCMesh, patchProps);
+    patch(axH, MCMesh, patchProps);
+    % drawPoint3d(midPoint3d(MPC,LPC),'Marker','o','MarkerEdgeColor','k','MarkerFaceColor','k')
+    patch(axH, proximalPart, patchProps);
+    % Neck axis
+    drawArrow3d(axH, NeckAxis(1:3),-NeckAxis(4:6)/2,'g') % flipped for better visu
 end
 
 %% Refinement of tabletop plane
@@ -95,23 +89,66 @@ assert(any(isBelowPlane(LCMesh.vertices, tabletopPlane)) <= 1)
 assert(any(isBelowPlane(proximalPart.vertices, tabletopPlane)) <= 1)
 
 % Get the vertex indices of the tabletop points
-MPC_Idx = find(ismembertol(femurCS.vertices, MPC, 'ByRows',true'));
-LPC_Idx = find(ismembertol(femurCS.vertices, LPC, 'ByRows',true'));
-PTC_Idx = find(ismembertol(femurCS.vertices, PTC, 'ByRows',true'));
-
 switch side
     case 'R'
-        LMIdx.MedialPosteriorCondyle = MPC_Idx;
-        LMIdx.LateralPosteriorCondyle = LPC_Idx;
+        MPC_Idx = find(ismembertol(femurCS.vertices, MPC, 'ByRows',true'));
+        LPC_Idx = find(ismembertol(femurCS.vertices, LPC, 'ByRows',true'));
     case 'L'
-        LMIdx.MedialPosteriorCondyle = LPC_Idx;
-        LMIdx.LateralPosteriorCondyle = MPC_Idx;
+        LPC_Idx = find(ismembertol(femurCS.vertices, MPC, 'ByRows',true'));
+        MPC_Idx = find(ismembertol(femurCS.vertices, LPC, 'ByRows',true'));
 end
+PTC_Idx = find(ismembertol(femurCS.vertices, PTC, 'ByRows',true'));
+
+
+LMIdx.MedialPosteriorCondyle = MPC_Idx;
+LMIdx.LateralPosteriorCondyle = LPC_Idx;
 LMIdx.PosteriorTrochantericCrest = PTC_Idx;
 
-%% visualization
-Tabletop(femur, side, HJC, LMIdx, 'visu', visu);
-
+%% Visualization
+if visu
+    % Landmarks
+    MPC = iFemur.vertices(MPC_Idx,:);
+    LPC = iFemur.vertices(LPC_Idx,:);
+    PTC = iFemur.vertices(PTC_Idx,:);
+    text(axH, MPC(:,1),MPC(:,2)-5,MPC(:,3)-5,{'MPC'},'FontSize',14,'HorizontalAlignment','Right')
+    text(axH, LPC(:,1),LPC(:,2)-5,LPC(:,3)-5,{'LPC'},'FontSize',14,'HorizontalAlignment','Right')
+    text(axH, PTC(:,1),PTC(:,2)-5,PTC(:,3)+5,{'PTC'},'FontSize',14,'HorizontalAlignment','Left')
+    
+    % Tabletop patch
+    patchProps.LineStyle='-';
+    patchProps.LineWidth = 1;
+    patchProps.Marker='o';
+    patchProps.MarkerFaceColor='k';
+    patchProps.MarkerEdgeColor='k';
+    patchProps.FaceColor='k';
+    patchProps.FaceAlpha=0.75;
+    patchProps.EdgeColor='k';
+    
+    tablePatch.vertices=[MPC;LPC;PTC];
+    tablePatch.faces=1:3;
+    
+    patch(axH, tablePatch, patchProps)
+    
+    textPosX=1/3*(MPC(1)+LPC(1)+PTC(1));
+    textPosY=MPC(2);
+    textPosZ=1/3*(MPC(3)+LPC(3)+PTC(3));
+    
+    text(axH, textPosX, textPosY-2, textPosZ, 'TTP','Rotation',0,'FontSize',16,'FontWeight','bold')
+    
+    anatomicalViewButtons(axH, 'RAS')
+    
+    % % For publication
+    % axis(axH, 'off')
+    % pcLine = normalizeLine3d(createLine3d(LPC,MPC));
+    % ttNormal = planeNormal(createPlane(LPC,MPC,PTC));
+    % camTar = mean(iFemur.vertices);
+    % set(axH, 'CameraTarget',camTar);
+    % set(axH, 'CameraPosition',camTar+[0 -300 0]+pcLine(4:6)*1000);
+    % set(axH, 'CameraUpVector',normalizeVector3d(ttNormal));
+    % set(axH, 'CameraViewAngle',15)
+    % set(figH, 'GraphicsSmoothing','off')
+    % export_fig('Figure5', '-tif', '-r300')
+end
 
 end
 

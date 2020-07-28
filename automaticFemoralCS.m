@@ -137,7 +137,7 @@ if debugVisu
         'BackgroundColor','w','Position',[BW+(BSX+BW)*2 0.01 BSX 0.99]);
     tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
     view(tAH,dFig1View); axis(tAH, 'tight');
-    % The femur in the pre-registration CS
+    % Subject after rough pre-registration
     visualizeMeshes(tAH, femurPreReg);
     patch(template, templateProps)
 end
@@ -150,12 +150,12 @@ if debugVisu
         'BackgroundColor','w','Position',[BW+(BSX+BW)*3 0.01 BSX 0.99]);
     tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
     view(tAH,dFig1View); axis(tAH, 'tight');
-    % The femur in the ... CS
+    % The subject after condyle registration
     visualizeMeshes(tAH, femurCondReg);
     patch(template, templateProps)
 end
 
-% Adapt femoral version of the template
+% Adapt femoral version, neck-shaft angle and neck length of the template
 templatePreReg.vertices = adjustTemplateFemoralVersion(template.vertices, femurCondReg.vertices);
 templatePreReg.faces = template.faces;
 if debugVisu
@@ -163,12 +163,12 @@ if debugVisu
         'BackgroundColor','w','Position',[BW+(BSX+BW)*4 0.01 BSX 0.99]);
     tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
     view(tAH,dFig1View); axis(tAH, 'tight');
-    % The template in the ... CS
+    % The adapted template
     visualizeMeshes(tAH, femurCondReg);
     patch(templatePreReg, templateProps)
 end
 
-% non-rigid ICP registration - mediTEC implementation
+% non-rigid ICP registration
 disp('____________ Morphing of the template mesh to the target _____________')
 NRICP_ALPHA = [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]';
 templateNICP = nonRigidICP(templatePreReg, femurCondReg, ...
@@ -233,7 +233,8 @@ for a=1:size(areas,1)
 end
 
 if debugVisu
-    % For publication
+    % % For publication
+    % set(gcf, 'GraphicsSmoothing','off')
     % export_fig('Figure2', '-tif', '-r300')
 end
 
@@ -314,6 +315,7 @@ NeckAxis = ANA(femur.vertices, femur.faces, side, ...
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 if debugVisu
     % For publication
+    % set(gcf, 'GraphicsSmoothing','off')
     % export_fig('Figure4', '-tif', '-r300')
     
     debugNeckAxis = createLine3d(...
@@ -361,6 +363,11 @@ uspPreTFM = anatomicalOrientationTFM('RAS','ASR') * ...
     'visu',debugVisu, ...
     'verbose',verb, ...
     'subject',subject);
+if debugVisu
+%     % For publication
+%     set(gcf, 'GraphicsSmoothing','off')
+%     export_fig('Figure6', '-tif', '-r300')
+end
 
 % Transform distal femur into the USP CS
 distalFemurUSP = transformPoint3d(distalFemurInertia, USP_TFM);
