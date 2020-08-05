@@ -139,12 +139,12 @@ if visu
     
     % % For publication
     % axis(axH, 'off')
-    % pcLine = normalizeLine3d(createLine3d(LPC,MPC));
-    % ttNormal = planeNormal(createPlane(LPC,MPC,PTC));
+    % eqEllipsoid = equivalentEllipsoid(iFemur.vertices);
+    % ttpNormal = planeNormal(createPlane(LPC,MPC,PTC));
     % camTar = mean(iFemur.vertices);
     % set(axH, 'CameraTarget',camTar);
-    % set(axH, 'CameraPosition',camTar+[0 -300 0]+pcLine(4:6)*1000);
-    % set(axH, 'CameraUpVector',normalizeVector3d(ttNormal));
+    % set(axH, 'CameraPosition',camTar+ttpNormal*1000);
+    % set(axH, 'CameraUpVector',normalizeVector3d(crossProduct3d(eqEllipsoid(7:9),ttpNormal)));
     % set(axH, 'CameraViewAngle',15)
     % set(figH, 'GraphicsSmoothing','off')
     % export_fig('Figure5', '-tif', '-r300')

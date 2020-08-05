@@ -1,14 +1,13 @@
-function TFM  = TabletopMediTEC(femur, side, HJC, LMIdx, varargin)
+function TFM  = MediTEC(femur, side, HJC, LMIdx, varargin)
 
-% Y axis: Normal of the tabletop plane.
+% Z axis: The mechanical axis defined by intercondylar notch and the hip
+%         joint center
+% X axis: Orthogonal to the normal of the tabletop plane and Z axis
 %         Definition of the tabletop plane:
 %           - Resection of the femoral neck including the head
 %           - Positioning of the posterior side of the femur on a table
 %           - The three contact points define the tabletop plane
-% Z axis: Projection of the mechanical axis on the tabletop plane. The
-%         mechanical axis is defined by intercondylar notch and the hip
-%         joint center
-% X axis: Orthogonal to Y and Z axis
+% Y axis: Orthogonal to the Z and X axis
 
 % inputs
 p = inputParser;
@@ -27,7 +26,7 @@ ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
 PTC = femur.vertices(LMIdx.PosteriorTrochantericCrest,:);
 
 %% Axes
-MechanicalAxis=createLine3d(ICN, HJC);
+MechanicalAxis = createLine3d(ICN, HJC);
 switch side
     case 'R'
         tabletopPlane = createPlane(MPC, PTC, LPC);
@@ -37,10 +36,10 @@ switch side
         error('Invalid side identifier!')
 end
 tabletopNormal = planeNormal(tabletopPlane);
-projMechanicalAxis = projLineOnPlane(MechanicalAxis,tabletopPlane);
-Z = normalizeVector3d(projMechanicalAxis(4:6));
-Y = normalizeVector3d(tabletopNormal);
-X = normalizeVector3d(crossProduct3d(Y, Z));
+
+Z = normalizeVector3d(MechanicalAxis(4:6));
+X = normalizeVector3d(crossProduct3d(tabletopNormal, Z));
+Y = normalizeVector3d(crossProduct3d(Z, X));
 
 TFM = [[X; Y; Z],[0 0 0]'; [0 0 0 1]]*createTranslation3d(-HJC);
 

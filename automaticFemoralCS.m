@@ -18,9 +18,8 @@ function [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, side, varargin
 %       'Bergmann2016' - 2016 - Bergmann et al. - Standardized Loads Acting
 %           in Hip Implants
 %       'WuBergmannComb' - A combination of Wu2002 and Bergmann2016
-%       'Tabletop' - A combination of Murphy1987 and Bergmann2016
-%       'TabletopMediTEC' - Table top method taking into account the
-%           mechanical axis
+%       'Tabletop' - Defined by the table top plane
+%       'MediTEC' - Defined by the mechanical axis and table top plane
 %   'visualization': true (default) or false
 %   'subject': Char: Identification of the subject. Default is 'anonymous'.
 %
@@ -50,7 +49,7 @@ addParameter(p,'HJC',nan, isPoint3d);
 isLine3d = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,6]});
 addParameter(p,'NeckAxis',nan, isLine3d);
-validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop','TabletopMediTEC'};
+validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop','MediTEC'};
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validStrings)));
 addParameter(p,'visualization',true,logParValidFunc);
 addParameter(p,'verbose',false,logParValidFunc);
@@ -69,7 +68,7 @@ subject = p.Results.subject;
 debugVisu = logical(p.Results.debugVisualization);
 
 %% Algorithm
-% Get inertia transformation
+% Get inertia transformation for the input femur (subject)
 femurProps = inertiaInfo(femur);
 
 % Transform the vertices into the temporary inertia coordinate system
@@ -89,29 +88,36 @@ if debugVisu
     BW = 0.005;
     BSX = (1-(NOP+1)*BW)/NOP;
     set(0,'defaultAxesFontSize',14)
-    debugFigH1 = figure('Units','pixels','renderer','opengl', 'Color', 'w', 'WindowState', 'maximized');
+    debugFigH1 = figure('Units','pixels','renderer','opengl', 'Color', 'w');
+    MonitorsPos = get(0,'MonitorPositions');
+    if     size(MonitorsPos,1) == 1
+        set(debugFigH1,'OuterPosition', MonitorsPos(1,:));
+    elseif size(MonitorsPos,1) == 2
+        set(debugFigH1,'OuterPosition', MonitorsPos(2,:));
+    end
     debugFigH1.Name = [subject ': nICP registration (Debug Figure)'];
     debugFigH1.NumberTitle = 'off';
+    debugFigH1.WindowState = 'maximized';
     
     tPH = uipanel('Title','Subject''s principal axes transf. ','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*0 0.01 BSX 0.99]);
     tAH = axes('Parent', tPH, 'Visible','off', 'Color','w');
     
-    % The femur in the inertia CS
+    % The subject in the inertia CS
     visualizeMeshes(tAH, femurInertia);
     dFig1View = [90,-90];
     view(tAH,dFig1View); axis(tAH, 'tight');
 end
 
-% Load template mesh
+% Load template
 load('template.mat','template')
 
-% Length of the template femur
+% Length of the template
 templateLength = max(template.vertices(:,1))-min(template.vertices(:,1));
-% Length of the input femur
+% Length of the subject
 femurInertiaLength = max(femurInertia.vertices(:,1))-min(femurInertia.vertices(:,1));
 
-% Scale input femur in x-direction
+% Scale subject in x-direction to the length of the template
 xScale = templateLength/femurInertiaLength;
 TFM2xScaling = eye(4); TFM2xScaling(1,1) = xScale;
 femurXScaling = transformPoint3d(femurInertia, TFM2xScaling);
@@ -129,7 +135,7 @@ if debugVisu
     patch(tAH, template, templateProps);
 end
 
-% Rough pre-registration
+% Rough pre-registration of the subject to the template
 femurPreReg.vertices = roughPreRegistration(template.vertices, femurXScaling.vertices);
 femurPreReg.faces = femurInertia.faces;
 if debugVisu
@@ -142,7 +148,7 @@ if debugVisu
     patch(template, templateProps)
 end
 
-% Register femoral condyles
+% Register femoral condyles of the subject to the template
 femurCondReg.vertices = regFemoralCondyles(template.vertices, femurPreReg.vertices);
 femurCondReg.faces = femurPreReg.faces;
 if debugVisu
@@ -168,7 +174,7 @@ if debugVisu
     patch(templatePreReg, templateProps)
 end
 
-% non-rigid ICP registration
+% Non-rigid ICP registration
 disp('____________ Morphing of the template mesh to the target _____________')
 NRICP_ALPHA = [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]';
 templateNICP = nonRigidICP(templatePreReg, femurCondReg, ...
@@ -184,7 +190,7 @@ if debugVisu
     patch(templateNICP, templateProps)
 end
 
-% Mapping of landmarks and areas of the template to the source
+% Mapping of landmarks and areas of the template to the subject
 femurCondRegKDTree=createns(femurCondReg.vertices);
 % Landmarks
 load('template_landmarks.mat','landmarks')
@@ -214,7 +220,7 @@ end
 % Areas
 load('template_areas.mat','areas')
 % Delete not required area
-areas(3,:)=[];
+areas(3,:)=[]; % Shaft
 areas=[areas,cell(size(areas,1),1)];
 for a=1:size(areas,1)
     tempFaces = template.faces(areas{a,2},:);
@@ -241,7 +247,7 @@ end
 %% Extract parameter
 % Hip joint center
 if isnan(HJC)
-    % fit sphere to the head of the femur, if HJC is not already available
+    % Fit sphere to the head of the femur, if HJC is not already available
     Head = femur.vertices(areas{ismember(areas(:,1),'Head'),3},:);
     headSphere = fitSphere(Head); 
     HJC = headSphere(1:3);
@@ -364,19 +370,19 @@ uspPreTFM = anatomicalOrientationTFM('RAS','ASR') * ...
     'verbose',verb, ...
     'subject',subject);
 if debugVisu
-%     % For publication
-%     set(gcf, 'GraphicsSmoothing','off')
-%     export_fig('Figure6', '-tif', '-r300')
+    % % For publication
+    % set(gcf, 'GraphicsSmoothing','off')
+    % export_fig('Figure6', '-tif', '-r300')
 end
 
 % Transform distal femur into the USP CS
 distalFemurUSP = transformPoint3d(distalFemurInertia, USP_TFM);
-% Get the morphing points of the epicodyles in USP CS
-MEC_morph_USP=transformPoint3d(femurInertia.vertices(LMIdx.MedialEpicondyle,:), USP_TFM);
-LEC_morph_USP=transformPoint3d(femurInertia.vertices(LMIdx.LateralEpicondyle,:), USP_TFM);
+% Get the mapped points of the epicodyles in USP CS
+MEC_map_USP = transformPoint3d(femurInertia.vertices(LMIdx.MedialEpicondyle,:), USP_TFM);
+LEC_map_USP = transformPoint3d(femurInertia.vertices(LMIdx.LateralEpicondyle,:), USP_TFM);
 % Refinement of the epicondyles (beta)
 [MEC_USP, LEC_USP] = epicondyleRefinement(distalFemurUSP, CEA, ...
-    MEC_morph_USP, LEC_morph_USP, 'visu',debugVisu);
+    MEC_map_USP, LEC_map_USP, 'visu',debugVisu);
 
 % Get the epicondyle indices for the full femur
 ecInertia = transformPoint3d([MEC_USP; LEC_USP],inv(USP_TFM));
@@ -386,12 +392,13 @@ if side == 'L'; flipud(ecIdx); end
 LMIdx.MedialEpicondyle=ecIdx(1); LMIdx.LateralEpicondyle=ecIdx(2);
 
 if debugVisu
-    MEC=femur.vertices(LMIdx.MedialEpicondyle,:);
-    LEC=femur.vertices(LMIdx.LateralEpicondyle,:);
+    MEC = femur.vertices(LMIdx.MedialEpicondyle,:);
+    LEC = femur.vertices(LMIdx.LateralEpicondyle,:);
     drawPoint3d(debugAxH2, [MEC; LEC],'MarkerFaceColor','r','MarkerEdgeColor','r');
     text(debugAxH2, MEC(1),MEC(2),MEC(3),'MEC')
     text(debugAxH2, LEC(1),LEC(2),LEC(3),'LEC')
 end
+
 
 %% Refinement of the Intercondylar Notch (ICN)
 extremePoints = distalFemurExtremePoints(distalFemurUSP, 'R', PFEA, 'visu', debugVisu, 'debug',0);
@@ -426,8 +433,8 @@ switch definition
         fwTFM2AFCS = Bergmann2016(femur, side, HJC, LMIdx, 'visu',visu);
     case 'tabletop'
         fwTFM2AFCS = Tabletop(femur, side, HJC, LMIdx, 'visu',visu);
-    case 'tabletopmeditec'
-        fwTFM2AFCS = TabletopMediTEC(femur, side, HJC, LMIdx, 'visu',visu);
+    case 'meditec'
+        fwTFM2AFCS = MediTEC(femur, side, HJC, LMIdx, 'visu',visu);
 end
 
 %% Save landmarks in cartesian coordinates in input femur CS
