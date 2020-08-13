@@ -1,4 +1,4 @@
-function [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, side, varargin)
+function [fwTFM2AFCS, LMIdx, HJC, LM, TFM] = automaticFemoralCS(femur, side, varargin)
 %AUTOMATICFEMORALCS Calculate an femoral coordinate system (AFCS)
 %
 % REQUIRED INPUT:
@@ -17,7 +17,6 @@ function [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, side, varargin
 %           of human joint motion - part I: ankle, hip, and spine (default)
 %       'Bergmann2016' - 2016 - Bergmann et al. - Standardized Loads Acting
 %           in Hip Implants
-%       'WuBergmannComb' - A combination of Wu2002 and Bergmann2016
 %       'Tabletop' - Defined by the table top plane
 %       'MediTEC' - Defined by the mechanical axis and table top plane
 %   'visualization': true (default) or false
@@ -49,8 +48,8 @@ addParameter(p,'HJC',nan, isPoint3d);
 isLine3d = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,6]});
 addParameter(p,'NeckAxis',nan, isLine3d);
-validStrings={'Wu2002','Bergmann2016','WuBergmannComb','Tabletop','MediTEC'};
-addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validStrings)));
+validCSStrings={'Wu2002','Bergmann2016','Tabletop','MediTEC'};
+addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validCSStrings)));
 addParameter(p,'visualization',true,logParValidFunc);
 addParameter(p,'verbose',false,logParValidFunc);
 addParameter(p,'subject','anonymous',@(x) validateattributes(x,{'char'},{'nonempty'}));
@@ -61,7 +60,7 @@ femur = p.Results.femur;
 side = upper(p.Results.side(1));
 HJC = p.Results.HJC;
 NeckAxis = p.Results.NeckAxis;
-definition = lower(p.Results.definition);
+definition = p.Results.definition;
 visu = logical(p.Results.visualization);
 verb = logical(p.Results.verbose);
 subject = p.Results.subject;
@@ -70,15 +69,19 @@ debugVisu = logical(p.Results.debugVisualization);
 %% Algorithm
 % Get inertia transformation for the input femur (subject)
 femurProps = inertiaInfo(femur);
+inertiaTFM = inv(femurProps.inverseInertiaTFM);
 
 % Transform the vertices into the temporary inertia coordinate system
-femurInertia = transformPoint3d(femur, inv(femurProps.inverseInertiaTFM));
+femurInertia = transformPoint3d(femur, inertiaTFM);
 
 % For left femurs reflect along the x-axis after inertia transform
+xReflection = eye(4);
 if strcmp(side, 'L')
-    xReflection = eye(4);
     xReflection(1,1) = -1;
-    femurInertia.vertices = transformPoint3d(femurInertia.vertices, xReflection);
+end
+femurInertia.vertices = transformPoint3d(femurInertia.vertices, xReflection);
+
+if strcmp(side, 'L')
     % Orient the normals outwards after reflection
     femurInertia.faces = fliplr(femurInertia.faces);
 end
@@ -107,6 +110,8 @@ if debugVisu
     visualizeMeshes(tAH, femurInertia);
     dFig1View = [90,-90];
     view(tAH,dFig1View); axis(tAH, 'tight');
+    XLIM = [-270,240]; YLIM = [-50,45];
+    xlim(tAH,XLIM); ylim(tAH,YLIM);
 end
 
 % Load template
@@ -133,6 +138,7 @@ if debugVisu
     templateProps.FaceLighting = 'gouraud';
     % The template in the template CS
     patch(tAH, template, templateProps);
+    xlim(tAH,XLIM); ylim(tAH,YLIM);
 end
 
 % Rough pre-registration of the subject to the template
@@ -146,6 +152,7 @@ if debugVisu
     % Subject after rough pre-registration
     visualizeMeshes(tAH, femurPreReg);
     patch(template, templateProps)
+    xlim(tAH,XLIM); ylim(tAH,YLIM);
 end
 
 % Register femoral condyles of the subject to the template
@@ -159,6 +166,7 @@ if debugVisu
     % The subject after condyle registration
     visualizeMeshes(tAH, femurCondReg);
     patch(template, templateProps)
+    xlim(tAH,XLIM); ylim(tAH,YLIM);
 end
 
 % Adapt femoral version, neck-shaft angle and neck length of the template
@@ -172,6 +180,7 @@ if debugVisu
     % The adapted template
     visualizeMeshes(tAH, femurCondReg);
     patch(templatePreReg, templateProps)
+    xlim(tAH,XLIM); ylim(tAH,YLIM);
 end
 
 % Non-rigid ICP registration
@@ -239,9 +248,11 @@ for a=1:size(areas,1)
 end
 
 if debugVisu
-    % % For publication
-    % set(gcf, 'GraphicsSmoothing','off')
-    % export_fig('Figure2', '-tif', '-r300')
+    xlim(tAH5,XLIM); ylim(tAH5,YLIM);
+    xlim(tAH6,XLIM); ylim(tAH6,YLIM);
+%     % For publication
+%     set(gcf, 'GraphicsSmoothing','off')
+%     export_fig('Figure2', '-tif', '-r300')
 end
 
 %% Extract parameter
@@ -272,6 +283,7 @@ if isnan(NeckAxis)
     NeckAxis = [NeckEllipse(1:3), normalizeVector3d(transformVector3d([0 0 1], NeckEllipseTFM))];
 end
 NeckPlane=createPlane(NeckAxis(1:3), NeckAxis(4:6));
+% Neck axis should point in lateral direction
 if ~isBelowPlane(HJC,NeckPlane)
     NeckAxis=reverseLine3d(NeckAxis);
 end
@@ -315,9 +327,20 @@ end
 
 %% Refinement of the neck axis
 disp('_______________ Refinement of the anatomical neck axis ________________')
-NeckAxis = ANA(femur.vertices, femur.faces, side, ...
-    LMIdx.NeckAxis, LMIdx.ShaftAxis, LMIdx.NeckOrthogonal,...
-    'visu', debugVisu,'verbose',verb,'subject', subject);
+try
+    NeckAxis = ANA(femur.vertices, femur.faces, side, NeckAxis, ShaftAxis, ...
+        'visu', debugVisu,'verbose',verb,'subject', subject);
+catch
+    % In case the morphing of the neck did not work properly.
+    HJC2ShaftAxis = projPointOnLine3d(HJC, ShaftAxis);
+    NeckAxis = createLine3d(midPoint3d(HJC2ShaftAxis, HJC), HJC2ShaftAxis);
+    OrthogonalAxis = [midPoint3d(HJC2ShaftAxis, HJC), crossProduct3d(NeckAxis(4:6), ShaftAxis(4:6))];
+    DEF_NECK_SHAFT_ANGLE = 135;
+    NeckAxis = transformLine3d(NeckAxis, ...
+        createRotation3dLineAngle(OrthogonalAxis, deg2rad(DEF_NECK_SHAFT_ANGLE-90)));
+    NeckAxis = ANA(femur.vertices, femur.faces, side, NeckAxis, ShaftAxis, ...
+        'visu', debugVisu,'verbose',verb,'subject', subject);
+end
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 if debugVisu
     % For publication
@@ -401,6 +424,7 @@ end
 
 
 %% Refinement of the Intercondylar Notch (ICN)
+LMIdx.ICN_mapped = LMIdx.IntercondylarNotch;
 extremePoints = distalFemurExtremePoints(distalFemurUSP, 'R', PFEA, 'visu', debugVisu, 'debug',0);
 extremePointsInertia = structfun(@(x) transformPoint3d(x, inv(USP_TFM)), extremePoints,'uni',0);
 [~, LMIdx.IntercondylarNotch] = pdist2(femurInertia.vertices, ...
@@ -422,20 +446,25 @@ if debugVisu
     text(debugAxH2, PPLC(1),PPLC(2),PPLC(3),'PPLC')
 end
 
+%% PFEA and CEA
+LM.PFEA = transformLine3d(PFEA, femurProps.inverseInertiaTFM*xReflection*inv(USP_TFM));  %#ok<MINV>
+LM.CEA = transformLine3d(CEA, femurProps.inverseInertiaTFM*xReflection*inv(USP_TFM)); %#ok<MINV>
+LMIdx.PFEA = lineToVertexIndices(LM.PFEA, femur);
+LMIdx.CEA = lineToVertexIndices(LM.CEA, femur);
 
 %% Construct the femoral CS
-switch definition
-    case 'wu2002'
-        fwTFM2AFCS = Wu2002(femur,side,HJC,LMIdx, 'visu',visu);
-    case 'wubergmanncomb'
-        fwTFM2AFCS = WuBergmannComb(femur,side,HJC,LMIdx, 'visu',visu);
-    case 'bergmann2016'
-        fwTFM2AFCS = Bergmann2016(femur, side, HJC, LMIdx, 'visu',visu);
-    case 'tabletop'
-        fwTFM2AFCS = Tabletop(femur, side, HJC, LMIdx, 'visu',visu);
-    case 'meditec'
-        fwTFM2AFCS = MediTEC(femur, side, HJC, LMIdx, 'visu',visu);
+if visu
+    CSIdx = ismember(validCSStrings,definition);
+else
+    CSIdx = false(4,1);
 end
+TFM.Wu2002 = Wu2002(femur,side,HJC,LMIdx, 'visu',CSIdx(1));
+TFM.Bergmann2016 = Bergmann2016(femur, side, HJC, LMIdx, 'visu',CSIdx(2));
+TFM.Tabletop = Tabletop(femur, side, HJC, LMIdx, 'visu',CSIdx(3));
+TFM.MediTEC = MediTEC(femur, side, HJC, LMIdx, 'visu',CSIdx(4));
+TFM.USP = USP_TFM*xReflection*inertiaTFM; %#ok<MINV>
+
+fwTFM2AFCS = TFM.(definition);
 
 %% Save landmarks in cartesian coordinates in input femur CS
 LM.FemoralHeadCenter = HJC;

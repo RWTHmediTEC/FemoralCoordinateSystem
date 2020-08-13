@@ -16,7 +16,7 @@ femur = p.Results.femur;
 visu = logical(p.Results.visualization);
 
 %% Inital transformation (iTFM)
-iTFM = Tabletop(femur, side, HJC, LMIdx, 'visu', visu);
+iTFM = Tabletop(femur, side, HJC, LMIdx, 'visu', false);
 
 % Transform the mesh by the inital TFM
 iFemur = transformPoint3d(femur, iTFM);
@@ -52,8 +52,10 @@ if visu
     patchProps.EdgeColor = 'none';
     patchProps.FaceAlpha = 0.5;
     patchProps.FaceLighting = 'gouraud';
-    [~,axH,figH] = visualizeMeshes([head,shaft], patchProps); %#ok<ASGLU>
+    [~,axH,figH] = visualizeMeshes([head,shaft], patchProps); 
     % drawAxis3d(axH, 35, 1.5)
+    figH.Name = 'Detection of the table top plane';
+    figH.NumberTitle = 'Off';
     
     patchProps.FaceAlpha = 1;
     patchProps.FaceColor = 'r';
@@ -148,6 +150,9 @@ if visu
     % set(axH, 'CameraViewAngle',15)
     % set(figH, 'GraphicsSmoothing','off')
     % export_fig('Figure5', '-tif', '-r300')
+    
+    Tabletop(femur, side, HJC, LMIdx, 'visu', visu);
+    set(gcf, 'Name','TableTop Coordinate System', 'NumberTitle','Off')
 end
 
 end

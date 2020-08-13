@@ -44,6 +44,7 @@ shaftEllipsoid = equivalentEllipsoid(shaft.vertices);
 shaftVector = transformVector3d([1 0 0], eulerAnglesToRotation3d(shaftEllipsoid(7:9)));
 shaftAxis = [shaftEllipsoid(1:3) shaftVector];
 shaftPlane = createPlane(shaftAxis(1:3), shaftAxis(4:6));
+% Shaft axis should point in distal direction
 if ~isBelowPlane(HJC,shaftPlane)
     shaftAxis=reverseLine3d(shaftAxis);
 end
