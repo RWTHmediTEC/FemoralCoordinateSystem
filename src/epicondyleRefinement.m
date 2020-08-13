@@ -8,20 +8,19 @@ addParameter(p,'visualization',false,logParValidFunc);
 parse(p,distalFemurUSP,varargin{:});
 visu = logical(p.Results.visualization);
 
-% Get min/max indices of the epicodyles in USP system
-[~, ecMinMaxIdxUSP(1)] = min(distalFemurUSP.vertices(:,3)); % MEC
-[~, ecMinMaxIdxUSP(2)] = max(distalFemurUSP.vertices(:,3)); % LEC
-MEC_max = distalFemurUSP.vertices(ecMinMaxIdxUSP(1),:);
-LEC_max = distalFemurUSP.vertices(ecMinMaxIdxUSP(2),:);
-% Get the CEA indices of the epicodyles in USP system
+% Get the CEA intersections with the epicodyles in USP system
 CEA_intersectPts = intersectLineMesh3d(CEA, distalFemurUSP.vertices, distalFemurUSP.faces);
-[~, ecCEA_IdxUSP(1)] = min(CEA_intersectPts(:,3)); % MEC
-[~, ecCEA_IdxUSP(2)] = max(CEA_intersectPts(:,3)); % LEC
-MEC_CEA = CEA_intersectPts(ecCEA_IdxUSP(1),:);
-LEC_CEA = CEA_intersectPts(ecCEA_IdxUSP(2),:);
+
+%% MEC
+% Get min index of the medial epicodyle in USP system
+[~, MEC_maxIdx] = min(distalFemurUSP.vertices(:,3)); % MEC
+MEC_max = distalFemurUSP.vertices(MEC_maxIdx,:);
+[~, MEC_CEAidx] = min(CEA_intersectPts(:,3));
+MEC_CEA = CEA_intersectPts(MEC_CEAidx,:);
 % Sanity check in case of osteophytes
 MEC_CEA_map_Dist = distancePoints3d(MEC_map, MEC_CEA);
-if distancePoints3d(MEC_max, MEC_CEA) > MEC_CEA_map_Dist
+MEC_CEA_max_Dist = distancePoints3d(MEC_max, MEC_CEA);
+if MEC_CEA_max_Dist > MEC_CEA_map_Dist
     MEC_map_sphere = [MEC_map, MEC_CEA_map_Dist];
     MEC_CEA_sphere = [MEC_CEA, MEC_CEA_map_Dist];
     MEC_cand = clipPoints3d(distalFemurUSP.vertices, MEC_map_sphere, 'shape', 'sphere');
@@ -32,8 +31,19 @@ else
     % Keep max for MEC
     MEC_USP = MEC_max;
 end
+
+%% LEC
+% Get max index of the lateral epicodyle in USP system
+[~, LEC_maxIdx] = max(distalFemurUSP.vertices(:,3));
+LEC_max = distalFemurUSP.vertices(LEC_maxIdx,:);
+[~, LEC_CEAidx] = max(CEA_intersectPts(:,3));
+LEC_CEA = CEA_intersectPts(LEC_CEAidx,:);
+% Sanity check in case of osteophytes
 LEC_CEA_map_Dist = distancePoints3d(LEC_map, LEC_CEA);
-if distancePoints3d(LEC_max, LEC_CEA) > LEC_CEA_map_Dist
+LEC_CEA_max_Dist = distancePoints3d(LEC_max, LEC_CEA);
+if LEC_CEA_max_Dist > 20 % [mm]
+    LEC_USP = LEC_map;
+elseif LEC_CEA_max_Dist > LEC_CEA_map_Dist
     LEC_map_sphere = [LEC_map, LEC_CEA_map_Dist];
     LEC_CEA_sphere = [LEC_CEA, LEC_CEA_map_Dist];
     LEC_cand = clipPoints3d(distalFemurUSP.vertices, LEC_map_sphere, 'shape', 'sphere');
