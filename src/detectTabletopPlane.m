@@ -1,4 +1,4 @@
-function LMIdx = detectTabletopPlane(femur, side, HJC, LMIdx, varargin)
+function LMIdx = detectTabletopPlane(femur, side, HJC, NeckAxis, LMIdx, varargin)
 
 % Definition of the tabletop plane:
 % - Resection of the femoral neck including the head
@@ -20,10 +20,7 @@ iTFM = Tabletop(femur, side, HJC, LMIdx, 'visu', false);
 
 % Transform the mesh by the inital TFM
 iFemur = transformPoint3d(femur, iTFM);
-
-NeckAxis = createLine3d(iFemur.vertices(LMIdx.NeckAxis(1),:),iFemur.vertices(LMIdx.NeckAxis(2),:));
-NeckOrthogonal = createLine3d(iFemur.vertices(LMIdx.NeckOrthogonal(1),:),iFemur.vertices(LMIdx.NeckOrthogonal(2),:));
-[~, NeckAxis(1:3), ~] = distanceLines3d(NeckAxis, NeckOrthogonal);
+NeckAxis = transformLine3d(NeckAxis, iTFM);
 MPC = iFemur.vertices(LMIdx.MedialPosteriorCondyle,:);
 LPC = iFemur.vertices(LMIdx.LateralPosteriorCondyle,:);
 
@@ -32,15 +29,15 @@ LPC = iFemur.vertices(LMIdx.LateralPosteriorCondyle,:);
 iLength = abs(max(iFemur.vertices(:,3)))+abs(min(iFemur.vertices(:,3)));
 % Cut off the distal part
 DISTAL_FACTOR = 1/6;
-distalPlane=[0 0 DISTAL_FACTOR*iLength+min(iFemur.vertices(:,3)), 1 0 0, 0 1 0];
+distalPlane = [0 0 DISTAL_FACTOR*iLength+min(iFemur.vertices(:,3)), 1 0 0, 0 1 0];
 distalPart = cutMeshByPlane(iFemur, distalPlane, 'part','below');
 % Cut the distal part into the medial and lateral condyle
-sagittalPlane=createPlane(midPoint3d(MPC,LPC), [1 0 0]);
+sagittalPlane = createPlane(midPoint3d(MPC,LPC), [1 0 0]);
 [LCMesh, ~, MCMesh]  = cutMeshByPlane(distalPart, sagittalPlane);
 
 %% Resect proximal femur
 PROXIMAL_FACTOR = 2/6;
-proximalPlane=[0 0 -PROXIMAL_FACTOR*iLength, 1 0 0, 0 1 0];
+proximalPlane = [0 0 -PROXIMAL_FACTOR*iLength, 1 0 0, 0 1 0];
 [proximalPart, ~, shaft] = cutMeshByPlane(iFemur, proximalPlane);
 shaft = cutMeshByPlane(shaft, distalPlane, 'part','above');
 % Resect the neck and the head
@@ -64,7 +61,7 @@ if visu
     % drawPoint3d(midPoint3d(MPC,LPC),'Marker','o','MarkerEdgeColor','k','MarkerFaceColor','k')
     patch(axH, proximalPart, patchProps);
     % Neck axis
-    drawArrow3d(axH, NeckAxis(1:3),-NeckAxis(4:6)/2,'g') % flipped for better visu
+    drawArrow3d(axH, NeckAxis(1:3),-normalizeVector3d(NeckAxis(4:6))*40,'g') % flipped for better visu
 end
 
 %% Refinement of tabletop plane

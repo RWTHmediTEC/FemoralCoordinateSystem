@@ -255,6 +255,7 @@ if debugVisu
 %     export_fig('Figure2', '-tif', '-r300')
 end
 
+
 %% Extract parameter
 % Hip joint center
 if isnan(HJC)
@@ -310,26 +311,12 @@ if debugVisu
     drawVector3d(debugAxH2, debugShaftAxis(1:3),debugShaftAxis(4:6)*100,'-.g');
 end
 
-% Neck Orthogonal
-NeckOrthogonal(1:3) = NeckAxis(1:3);
-NeckOrthogonal(4:6) = crossProduct3d(NeckAxis(4:6), ShaftAxis(4:6));
-% Use vertex indices of the mesh to define the neck orthogonal
-if strcmp(side, 'L'); NeckOrthogonal(4:6)=-NeckOrthogonal(4:6); end
-LMIdx.NeckOrthogonal = lineToVertexIndices(NeckOrthogonal, femur);
-if debugVisu
-    debugNeckOrthogonal = createLine3d(...
-        femur.vertices(LMIdx.NeckOrthogonal(1),:),...
-        femur.vertices(LMIdx.NeckOrthogonal(2),:));
-    debugNeckOrthogonal(4:6) = normalizeVector3d(debugNeckOrthogonal(4:6));
-    drawVector3d(debugAxH2, debugNeckOrthogonal(1:3),debugNeckOrthogonal(4:6)*100,'-.b');
-end
-
 
 %% Refinement of the neck axis
 disp('_______________ Refinement of the anatomical neck axis ________________')
 try
     NeckAxis = ANA(femur.vertices, femur.faces, side, NeckAxis, ShaftAxis, ...
-        'visu', debugVisu,'verbose',verb,'subject', subject);
+        'visu', debugVisu,'verbose',verb,'subject', subject,'PlaneVariationRange', 12);
 catch
     % In case the morphing of the neck did not work properly.
     HJC2ShaftAxis = projPointOnLine3d(HJC, ShaftAxis);
@@ -339,7 +326,7 @@ catch
     NeckAxis = transformLine3d(NeckAxis, ...
         createRotation3dLineAngle(OrthogonalAxis, deg2rad(DEF_NECK_SHAFT_ANGLE-90)));
     NeckAxis = ANA(femur.vertices, femur.faces, side, NeckAxis, ShaftAxis, ...
-        'visu', debugVisu,'verbose',verb,'subject', subject);
+        'visu', debugVisu,'verbose',verb,'subject', subject,'PlaneVariationRange', 12);
 end
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 if debugVisu
@@ -353,16 +340,10 @@ if debugVisu
     debugNeckAxis(4:6) = normalizeVector3d(debugNeckAxis(4:6));
     drawVector3d(debugAxH2, debugNeckAxis(1:3),debugNeckAxis(4:6)*100,'r');
 end
-% Neck Orthogonal
-NeckOrthogonal(1:3) = NeckAxis(1:3);
-NeckOrthogonal(4:6) = crossProduct3d(NeckAxis(4:6), ShaftAxis(4:6));
-% Use vertex indices of the mesh to define the neck orthogonal
-if strcmp(side, 'L'); NeckOrthogonal(4:6)=-NeckOrthogonal(4:6); end
-LMIdx.NeckOrthogonal = lineToVertexIndices(NeckOrthogonal, femur);
 
 
 %% Detection of the tabletop plane
-LMIdx = detectTabletopPlane(femur, side, HJC, LMIdx, 'visu', debugVisu);
+LMIdx = detectTabletopPlane(femur, side, HJC, NeckAxis, LMIdx, 'visu', debugVisu);
 
 
 %% Refinement of the epicondyles
@@ -446,11 +427,13 @@ if debugVisu
     text(debugAxH2, PPLC(1),PPLC(2),PPLC(3),'PPLC')
 end
 
+
 %% PFEA and CEA
 LM.PFEA = transformLine3d(PFEA, femurProps.inverseInertiaTFM*xReflection*inv(USP_TFM));  %#ok<MINV>
 LM.CEA = transformLine3d(CEA, femurProps.inverseInertiaTFM*xReflection*inv(USP_TFM)); %#ok<MINV>
 LMIdx.PFEA = lineToVertexIndices(LM.PFEA, femur);
 LMIdx.CEA = lineToVertexIndices(LM.CEA, femur);
+
 
 %% Construct the femoral CS
 if visu
@@ -465,6 +448,7 @@ TFM.MediTEC = MediTEC(femur, side, HJC, LMIdx, 'visu',CSIdx(4));
 TFM.USP = USP_TFM*xReflection*inertiaTFM; %#ok<MINV>
 
 fwTFM2AFCS = TFM.(definition);
+
 
 %% Save landmarks in cartesian coordinates in input femur CS
 LM.FemoralHeadCenter = HJC;

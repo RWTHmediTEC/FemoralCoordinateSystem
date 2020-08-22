@@ -7,18 +7,37 @@ function TFM  = MediTEC(femur, side, HJC, LMIdx, varargin)
 
 % inputs
 p = inputParser;
+logParValidFunc=@(x) (islogical(x) || isequal(x,1) || isequal(x,0));
 addRequired(p,'femur',@(x) isstruct(x) && isfield(x, 'vertices') && isfield(x,'faces'))
 addRequired(p,'side',@(x) any(validatestring(x,{'R','L'})));
-addOptional(p,'visualization',true,@islogical);
+addOptional(p,'visualization',true,logParValidFunc);
 parse(p,femur,side,varargin{:});
 
 femur = p.Results.femur;
 visu = p.Results.visualization;
 
 %% Landmarks
-MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
-LPC = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
-ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
+if isfield(LMIdx,'MedialPosteriorCondyle')
+    MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
+elseif isfield(LMIdx,'MPC')
+    MPC = femur.vertices(LMIdx.MPC,:);
+else
+    error('Medial posterior condyle (MPC) is missing!')
+end
+if isfield(LMIdx,'LateralPosteriorCondyle')
+    LPC = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
+elseif isfield(LMIdx,'LPC')
+    LPC = femur.vertices(LMIdx.LPC,:);
+else
+    error('Lateral posterior condyle (LPC) is missing!')
+end
+if isfield(LMIdx,'IntercondylarNotch')
+    ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
+elseif isfield(LMIdx,'ICN')
+    ICN = femur.vertices(LMIdx.ICN,:);
+else
+    error('Intercondylar notch (ICN) is missing!')
+end
 
 %% Axes
 mechanicalAxis = createLine3d(ICN, HJC);
@@ -48,25 +67,29 @@ if visu
     MPC = transformPoint3d(MPC, TFM);
     LPC = transformPoint3d(LPC, TFM);
 
-    
     % Patch properties
     patchProps.FaceAlpha = 0.75;
     [~, axH] = visualizeMeshes(femurCS, patchProps);
     drawAxis3d(axH, 35,1.5)
     
     % Landmarks
-    LM_Idx = struct2cell(LMIdx);
-    LM_Idx = cell2mat(LM_Idx(structfun(@(x) length(x) == 1, LMIdx)));
-    drawPoint3d(axH, femurCS.vertices(LM_Idx, :),...
-        'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',2)
     drawPoint3d(axH, [ICN; HJC; MPC; LPC], ...
         'MarkerFaceColor','k','MarkerEdgeColor','k')
+    drawLabels3d(axH, [MPC; LPC; ICN],{'MPC';'LPC';'ICN'})
+    % Other landmarks
+    LMIdx_cell = struct2cell(LMIdx);
+    LM = cell2mat(LMIdx_cell(structfun(@(x) length(x) == 1, LMIdx)));
+    drawPoint3d(axH, femurCS.vertices(LM, :),...
+        'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',2)
     
     % Axes
-    drawLine3d(axH, transformLine3d(mechanicalAxis, TFM),'k')
-    drawLine3d(axH, transformLine3d(posteriorCondylarAxis, TFM),'k')
-    
-    drawLabels3d(axH, [MPC; LPC; ICN],{'MPC';'LPC';'ICN'})
+    drawLine3d(axH, transformLine3d(mechanicalAxis, TFM),'Color','k','LineWidth',2)
+    drawLine3d(axH, transformLine3d(posteriorCondylarAxis, TFM),'Color','k','LineWidth',2)
+    % % Other axes
+    % Axes = cell2mat(LMIdx_cell(structfun(@(x) length(x) == 2, LMIdx)));
+    % for a=1:size(Axes,1)
+    %     drawLine3d(axH, createLine3d(femurCS.vertices(Axes(a,1),:),femurCS.vertices(Axes(a,2),:)),'k')
+    % end
     
     anatomicalViewButtons(axH, 'RAS')
 end
