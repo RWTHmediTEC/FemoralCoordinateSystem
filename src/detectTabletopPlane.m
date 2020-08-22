@@ -1,9 +1,25 @@
-function LMIdx = detectTabletopPlane(femur, side, HJC, NeckAxis, LMIdx, varargin)
-
-% Definition of the tabletop plane:
-% - Resection of the femoral neck including the head
-% - Positioning of the posterior side of the femur on a table
-% - The three contact points define the tabletop plane
+function LM_Idx = detectTabletopPlane(femur, side, FHC, neckAxis, LM_Idx, varargin)
+%DETECTTABLETOPPLANE identifies the table top plane of the femur
+% 
+%   Definition of the tabletop plane:
+%	- Resection of the femoral neck including the head (in case 
+%     retroversion is present)
+%   - Position the posterior side of the femur on a table
+%   - The three contact points define the tabletop plane
+%
+%   INPUTS
+%       femur: femur mesh
+%       side: 'L' or 'R': left or right femur
+%       FHC: femoral head center
+%       neckAxis: neckAxis(1:3) is the center of the neck isthmus and 
+%       neckAxis(4:6) is the normal of the neck istmus plane (see ANA.m)
+%       LM_Idx: Struct containing the vertex indices of medial and lateral
+%       epicondyle mapped from the template.
+%
+% AUTHOR: Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% LICENSE: EUPL v1.2
+%
 
 % Inputs
 p = inputParser;
@@ -16,13 +32,13 @@ femur = p.Results.femur;
 visu = logical(p.Results.visualization);
 
 %% Inital transformation (iTFM)
-iTFM = Tabletop(femur, side, HJC, LMIdx, 'visu', false);
+iTFM = Tabletop(femur, side, FHC, LM_Idx, 'visu', false);
 
 % Transform the mesh by the inital TFM
 iFemur = transformPoint3d(femur, iTFM);
-NeckAxis = transformLine3d(NeckAxis, iTFM);
-MPC = iFemur.vertices(LMIdx.MedialPosteriorCondyle,:);
-LPC = iFemur.vertices(LMIdx.LateralPosteriorCondyle,:);
+neckAxis = transformLine3d(neckAxis, iTFM);
+MPC = iFemur.vertices(LM_Idx.MedialPosteriorCondyle,:);
+LPC = iFemur.vertices(LM_Idx.LateralPosteriorCondyle,:);
 
 %% Resect condyles
 % Get the length of the femur
@@ -41,9 +57,10 @@ proximalPlane = [0 0 -PROXIMAL_FACTOR*iLength, 1 0 0, 0 1 0];
 [proximalPart, ~, shaft] = cutMeshByPlane(iFemur, proximalPlane);
 shaft = cutMeshByPlane(shaft, distalPlane, 'part','above');
 % Resect the neck and the head
-if NeckAxis(6)>0; NeckAxis(4:6)=-NeckAxis(4:6); end
-neckPlane = createPlane(NeckAxis(1:3), NeckAxis(4:6));
+if neckAxis(6)>0; neckAxis(4:6)=-neckAxis(4:6); end
+neckPlane = createPlane(neckAxis(1:3), neckAxis(4:6));
 [proximalPart,~,head] = cutMeshByPlane(proximalPart, neckPlane);
+
 if visu
     % Patch properties
     patchProps.EdgeColor = 'none';
@@ -61,7 +78,7 @@ if visu
     % drawPoint3d(midPoint3d(MPC,LPC),'Marker','o','MarkerEdgeColor','k','MarkerFaceColor','k')
     patch(axH, proximalPart, patchProps);
     % Neck axis
-    drawArrow3d(axH, NeckAxis(1:3),-normalizeVector3d(NeckAxis(4:6))*40,'g') % flipped for better visu
+    drawArrow3d(axH, neckAxis(1:3),-normalizeVector3d(neckAxis(4:6))*40,'g') % flipped for better visu
 end
 
 %% Refinement of tabletop plane
@@ -90,18 +107,17 @@ assert(any(isBelowPlane(proximalPart.vertices, tabletopPlane)) <= 1)
 % Get the vertex indices of the tabletop points
 switch side
     case 'R'
-        MPC_Idx = find(ismembertol(femurCS.vertices, MPC, 'ByRows',true'));
-        LPC_Idx = find(ismembertol(femurCS.vertices, LPC, 'ByRows',true'));
+        MPC_Idx = find(ismembertol(femurCS.vertices, MPC, 'ByRows',1));
+        LPC_Idx = find(ismembertol(femurCS.vertices, LPC, 'ByRows',1));
     case 'L'
-        LPC_Idx = find(ismembertol(femurCS.vertices, MPC, 'ByRows',true'));
-        MPC_Idx = find(ismembertol(femurCS.vertices, LPC, 'ByRows',true'));
+        LPC_Idx = find(ismembertol(femurCS.vertices, MPC, 'ByRows',1));
+        MPC_Idx = find(ismembertol(femurCS.vertices, LPC, 'ByRows',1));
 end
 PTC_Idx = find(ismembertol(femurCS.vertices, PTC, 'ByRows',true'));
 
-
-LMIdx.MedialPosteriorCondyle = MPC_Idx;
-LMIdx.LateralPosteriorCondyle = LPC_Idx;
-LMIdx.PosteriorTrochantericCrest = PTC_Idx;
+LM_Idx.MedialPosteriorCondyle = MPC_Idx;
+LM_Idx.LateralPosteriorCondyle = LPC_Idx;
+LM_Idx.PosteriorTrochantericCrest = PTC_Idx;
 
 %% Visualization
 if visu
@@ -123,14 +139,14 @@ if visu
     patchProps.FaceAlpha=0.75;
     patchProps.EdgeColor='k';
     
-    tablePatch.vertices=[MPC;LPC;PTC];
-    tablePatch.faces=1:3;
+    tablePatch.vertices = [MPC;LPC;PTC];
+    tablePatch.faces = 1:3;
     
     patch(axH, tablePatch, patchProps)
     
-    textPosX=1/3*(MPC(1)+LPC(1)+PTC(1));
-    textPosY=MPC(2);
-    textPosZ=1/3*(MPC(3)+LPC(3)+PTC(3));
+    textPosX = 1/3*(MPC(1)+LPC(1)+PTC(1));
+    textPosY = MPC(2);
+    textPosZ = 1/3*(MPC(3)+LPC(3)+PTC(3));
     
     text(axH, textPosX, textPosY-2, textPosZ, 'TTP','Rotation',0,'FontSize',16,'FontWeight','bold')
     
@@ -139,16 +155,16 @@ if visu
     % % For publication
     % axis(axH, 'off')
     % eqEllipsoid = equivalentEllipsoid(iFemur.vertices);
-    % ttpNormal = planeNormal(createPlane(LPC,MPC,PTC));
+    % ttpNormal = planeNormal(createPlane(LPC, MPC, PTC));
     % camTar = mean(iFemur.vertices);
-    % set(axH, 'CameraTarget',camTar);
-    % set(axH, 'CameraPosition',camTar+ttpNormal*1000);
-    % set(axH, 'CameraUpVector',normalizeVector3d(crossProduct3d(eqEllipsoid(7:9),ttpNormal)));
+    % set(axH, 'CameraTarget', camTar);
+    % set(axH, 'CameraPosition', camTar+ttpNormal*1000);
+    % set(axH, 'CameraUpVector', normalizeVector3d(crossProduct3d(eqEllipsoid(7:9),ttpNormal)));
     % set(axH, 'CameraViewAngle',15)
     % set(figH, 'GraphicsSmoothing','off')
     % export_fig('Figure5', '-tif', '-r300')
     
-    Tabletop(femur, side, HJC, LMIdx, 'visu', visu);
+    Tabletop(femur, side, FHC, LM_Idx, 'visu', visu);
     set(gcf, 'Name','TableTop Coordinate System', 'NumberTitle','Off')
 end
 
