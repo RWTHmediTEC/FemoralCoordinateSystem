@@ -16,14 +16,14 @@ end
 
 % Load subject names
 load('VSD\MATLAB\res\VSD_Subjects.mat', 'Subjects')
-sides = {'R','L'};
+Subjects = table2cell(Subjects);
+Subjects(1:2:20,4) = {'L'}; Subjects(2:2:20,4) = {'R'};
 
 for s=1%:size(Subjects, 1)
-    load(['VSD\Bones\' Subjects.Number{s} '.mat'],'B');
+    load(['VSD\Bones\' Subjects{s,1} '.mat'], 'B');
     
-    sideIdx = randi(2);
-    
-    [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(B(sideIdx+3).mesh, sides{sideIdx},...
+    femur = B(ismember({B.name}, ['Femur_' Subjects{s,4}])).mesh;
+    [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, Subjects{s,4},...
         'definition','MediTEC', 'visu',1, 'verb',0, 'debug',1);
     
 end
