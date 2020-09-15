@@ -311,7 +311,7 @@ end
 disp('_______________ Refinement of the anatomical neck axis ________________')
 try
     NeckAxis = femoralNeckAxis(femur, side, NeckAxis, ShaftAxis, ...
-        'visu', debugVisu,'verbose',verb,'subject', subject,'PlaneVariationRange', 12);
+        'visu', debugVisu,'verbose',verb,'subject', subject);
 catch
     % In case the morphing of the neck did not work properly.
     FHC2ShaftAxis = projPointOnLine3d(FHC, ShaftAxis);
@@ -321,7 +321,7 @@ catch
     NeckAxis = transformLine3d(NeckAxis, ...
         createRotation3dLineAngle(OrthogonalAxis, deg2rad(DEF_NECK_SHAFT_ANGLE-90)));
     NeckAxis = femoralNeckAxis(femur, side, NeckAxis, ShaftAxis, ...
-        'visu', debugVisu,'verbose',verb,'subject', subject,'PlaneVariationRange', 12);
+        'visu', debugVisu,'verbose',verb,'subject', subject, 'PlaneVariationRange',12);
 end
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 if debugVisu

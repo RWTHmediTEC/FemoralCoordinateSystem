@@ -3,8 +3,8 @@ clearvars; close all; opengl hardware
 % Clone example data
 if ~exist('VSD', 'dir')
     try
-    !git clone https://github.com/RWTHmediTEC/VSDFullBodyBoneModels VSD
-    rmdir('VSD/.git', 's')
+        !git clone https://github.com/RWTHmediTEC/VSDFullBodyBoneModels VSD
+        rmdir('VSD/.git', 's')
     catch
         warning([newline 'Clone (or copy) the example data from: ' ...
             'https://github.com/RWTHmediTEC/VSDFullBodyBoneModels' newline 'to: ' ...
