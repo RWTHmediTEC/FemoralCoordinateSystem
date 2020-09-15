@@ -310,7 +310,7 @@ end
 %% Refinement of the neck axis
 disp('_______________ Refinement of the anatomical neck axis ________________')
 try
-    NeckAxis = ANA(femur.vertices, femur.faces, side, NeckAxis, ShaftAxis, ...
+    NeckAxis = femoralNeckAxis(femur, side, NeckAxis, ShaftAxis, ...
         'visu', debugVisu,'verbose',verb,'subject', subject,'PlaneVariationRange', 12);
 catch
     % In case the morphing of the neck did not work properly.
@@ -320,7 +320,7 @@ catch
     DEF_NECK_SHAFT_ANGLE = 135;
     NeckAxis = transformLine3d(NeckAxis, ...
         createRotation3dLineAngle(OrthogonalAxis, deg2rad(DEF_NECK_SHAFT_ANGLE-90)));
-    NeckAxis = ANA(femur.vertices, femur.faces, side, NeckAxis, ShaftAxis, ...
+    NeckAxis = femoralNeckAxis(femur, side, NeckAxis, ShaftAxis, ...
         'visu', debugVisu,'verbose',verb,'subject', subject,'PlaneVariationRange', 12);
 end
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);

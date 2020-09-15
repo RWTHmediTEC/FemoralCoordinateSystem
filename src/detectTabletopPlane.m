@@ -12,7 +12,7 @@ function LM_Idx = detectTabletopPlane(femur, side, FHC, neckAxis, LM_Idx, vararg
 %       side: 'L' or 'R': left or right femur
 %       FHC: femoral head center
 %       neckAxis: neckAxis(1:3) is the center of the neck isthmus and 
-%       neckAxis(4:6) is the normal of the neck istmus plane (see ANA.m)
+%       neckAxis(4:6) is the normal of the neck istmus plane (see FNA.m)
 %       LM_Idx: Struct containing the vertex indices of medial and lateral
 %       epicondyle mapped from the template.
 %
