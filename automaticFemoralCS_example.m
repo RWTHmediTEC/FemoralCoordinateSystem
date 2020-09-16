@@ -24,7 +24,7 @@ for s=1%:size(Subjects, 1)
     
     femur = B(ismember({B.name}, ['Femur_' Subjects{s,4}])).mesh;
     [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, Subjects{s,4},...
-        'definition','MediTEC', 'visu',1, 'verb',0, 'debug',1);
+        'definition','MediTEC', 'visu',1, 'verb',0, 'debug',1,'Subject', Subjects{s,1});
     
 end
 
