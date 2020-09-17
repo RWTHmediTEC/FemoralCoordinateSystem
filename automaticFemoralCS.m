@@ -399,7 +399,7 @@ end
 
 %% Refinement of the Intercondylar Notch (ICN)
 LMIdx.ICN_mapped = LMIdx.IntercondylarNotch;
-extremePoints = distalFemurExtremePoints(distalFemurUSP, 'R', PFEA, 'visu', debugVisu, 'debug',0);
+extremePoints = distalFemoralExtremePoints(distalFemurUSP, 'R', PFEA, 'visu', debugVisu, 'debug',0);
 extremePointsInertia = structfun(@(x) transformPoint3d(x, inv(USP_TFM)), extremePoints,'uni',0);
 [~, LMIdx.IntercondylarNotch] = pdist2(femurInertia.vertices, ...
     extremePointsInertia.Intercondylar, 'euclidean','Smallest',1);
