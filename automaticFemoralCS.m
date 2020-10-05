@@ -33,6 +33,9 @@ function [TFM2AFCS, LMIdx, FHC, LM, TFM] = automaticFemoralCS(femur, side, varar
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
 % VERSION: 1.0.3
 % DATE: 2018-08-24
+% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% LICENSE: EUPL v1.2
+% 
 
 addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'src']));
 addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'res']));
@@ -184,7 +187,7 @@ templateNICP = nonRigidICP(templatePreReg, femurCondReg, ...
     'alpha', NRICP_ALPHA,...
     'verbosity', double(verb));
 if debugVisu
-    tPH = uipanel('Title','Non-rigid ICP registration','FontSize',14,'BorderWidth',2,...
+    tPH = uipanel('Title','Nonrigid ICP registration','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*5 0.01 BSX 0.99]);
     dAxH1(6) = axes('Parent', tPH, 'Visible','off', 'Color','w');
     view(dAxH1(6),dFig1View); axis(dAxH1(6), 'tight');
