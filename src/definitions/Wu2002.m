@@ -1,5 +1,6 @@
 function TFM = Wu2002(femur, side, HJC, LMIdx, varargin)
-
+%WU2002 calculates the femoral coordinate system recommended by the ISB
+%
 % 2002 - Wu et al. - ISB recommendation on definitions of joint coordinate 
 % systems of various joints for the reporting of human joint motion Part 1
 % Femoral coordinate system—xyz:
@@ -12,6 +13,11 @@ function TFM = Wu2002(femur, side, HJC, LMIdx, varargin)
 %    the origin and the two FEs, pointing to the right.
 % x: The line perpendicular to both y- and z-axis, pointing anteriorly 
 % (Cappozzo et al., 1995)
+%
+% AUTHOR: Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% LICENSE: EUPL v1.2
+%
 
 % inputs
 p = inputParser;
@@ -51,7 +57,9 @@ if visu
     patchProps.FaceAlpha = 0.75;
     % The femur in the AFCS
     femurCS = transformPoint3d(femur, TFM);
-    [~, axH] = visualizeMeshes(femurCS, patchProps);
+    [~, axH, figH] = visualizeMeshes(femurCS, patchProps);
+    figH.NumberTitle = 'off';
+    figH.Name = 'Wu2002 (ISB) coordinate system';
     
     % Coordinate system
     drawAxis3d(axH, 35,1.5)

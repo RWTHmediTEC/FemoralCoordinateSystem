@@ -1,9 +1,16 @@
 function TFM  = MediTEC(femur, side, HJC, LMIdx, varargin)
-
+%MEDITEC calculates a femoral coordinate system based on the mechanical and
+% posterior condylar axis.
+%
 % Z axis: The mechanical axis defined by intercondylar notch and the hip
 %         joint center
 % Y axis: Orthogonal to the Z axis and posterior condylar axis
 % X axis: Orthogonal to the Y and Z axis
+%
+% AUTHOR: Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% LICENSE: EUPL v1.2
+%
 
 % inputs
 p = inputParser;
@@ -66,10 +73,12 @@ if visu
     HJC = transformPoint3d(HJC, TFM);
     MPC = transformPoint3d(MPC, TFM);
     LPC = transformPoint3d(LPC, TFM);
-
+    
     % Patch properties
     patchProps.FaceAlpha = 0.75;
-    [~, axH] = visualizeMeshes(femurCS, patchProps);
+    [~, axH, figH] = visualizeMeshes(femurCS, patchProps);
+    figH.NumberTitle = 'off';
+    figH.Name = 'mediTEC coordinate system';
     drawAxis3d(axH, 35,1.5)
     
     % Landmarks

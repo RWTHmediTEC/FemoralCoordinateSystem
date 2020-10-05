@@ -1,5 +1,6 @@
 function TFM = Bergmann2016(femur, side, HJC, LMIdx, varargin)
-
+%BERGMANN2016 calculates the femoral coordinate system used in Bergmann2016
+%
 % 2016 - Bergmann et al. - Standardized Loads Acting in Hip Implants:
 %   "The origin of this coordinate system is located at the centre of the 
 %   femoral head. The +z axis points upward and is defined by the line 
@@ -8,6 +9,11 @@ function TFM = Bergmann2016(femur, side, HJC, LMIdx, varargin)
 %   (P2). The +x axis points laterally and is oriented parallel to the 
 %   proximal contour of the condyles. The +y axis points in the anterior 
 %   direction."
+%
+% AUTHOR: Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% LICENSE: EUPL v1.2
+%
 
 % inputs
 p = inputParser;
@@ -51,7 +57,9 @@ if visu
     
     % Patch properties
     patchProps.FaceAlpha = 0.75;
-    [~, axH] = visualizeMeshes(femurCS, patchProps);
+    [~, axH, figH] = visualizeMeshes(femurCS, patchProps);
+    figH.NumberTitle = 'off';
+    figH.Name = 'Bergmann2016 coordinate system';
     drawAxis3d(axH,35,1.5)
     
     % Landmarks

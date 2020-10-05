@@ -1,7 +1,7 @@
 function [shaftAxis, shaftAxisIdx] = detectShaftAxis(femur, FHC, varargin)
 %DETECTSHAFTAXIS identifies the shaft axis of the femur
 % 
-%   Definition of the shaft axis:
+%   WORKFLOW
 %   - Find the two vertices with the maximum distance between each other.
 %	- Based on the length of the vector connecting these two vertices   
 %     resect 1/4 at of the femur at the proximal and distal end.

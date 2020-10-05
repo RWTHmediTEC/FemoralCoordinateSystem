@@ -73,7 +73,9 @@ else
 end
 
 if visu
-    [~, axH] = visualizeMeshes(distalFemurUSP);
+    [~, axH, figH] = visualizeMeshes(distalFemurUSP);
+    figH.NumberTitle = 'off';
+    figH.Name = 'Epicondyle refinement (debug figure)';
     drawLine3d(axH, CEA)
     drawPoint3d(axH, [MEC_map; LEC_map], 'MarkerFaceColor','r','MarkerEdgeColor','r');
     drawLabels3d(axH, MEC_map, 'MEC_{map}', 'Color','r','HorizontalAlignment','Left')

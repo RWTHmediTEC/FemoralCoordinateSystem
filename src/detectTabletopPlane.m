@@ -165,7 +165,6 @@ if visu
     % export_fig('Figure5', '-tif', '-r300')
     
     Tabletop(femur, side, FHC, LM_Idx, 'visu', visu);
-    set(gcf, 'Name','TableTop Coordinate System', 'NumberTitle','Off')
 end
 
 end

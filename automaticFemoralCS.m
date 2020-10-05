@@ -101,7 +101,7 @@ if debugVisu
     elseif size(MonitorsPos,1) == 2
         set(dFigH1,'OuterPosition', MonitorsPos(2,:));
     end
-    dFigH1.Name = [subject ': nICP registration (Debug Figure)'];
+    dFigH1.Name = ['Registration of template and subject ' subject ' (debug figure)'];
     dFigH1.NumberTitle = 'off';
     dFigH1.WindowState = 'maximized';
     
@@ -155,7 +155,7 @@ if debugVisu
 end
 
 % Register femoral condyles of the subject to the template
-femurCondReg.vertices = regFemoralCondyles(template.vertices, femurPreReg.vertices);
+femurCondReg.vertices = registerFemoralCondyles(template.vertices, femurPreReg.vertices);
 femurCondReg.faces = femurPreReg.faces;
 if debugVisu
     tPH = uipanel('Title','Condyle registration','FontSize',14,'BorderWidth',2,...
@@ -168,7 +168,7 @@ if debugVisu
 end
 
 % Adapt femoral version, neck-shaft angle and neck length of the template
-templatePreReg.vertices = adjustTemplateFemoralVersion(template.vertices, femurCondReg.vertices);
+templatePreReg.vertices = registerProximalFemur(template.vertices, femurCondReg.vertices);
 templatePreReg.faces = template.faces;
 if debugVisu
     tPH = uipanel('Title','Neck & head registration','FontSize',14,'BorderWidth',2,...
@@ -266,7 +266,7 @@ if isnan(FHC)
         patchProps.FaceColor = [223, 206, 161]/255;
         patchProps.FaceAlpha = 0.5;
         [~, dAxH2, dFigH2] = visualizeMeshes(femur, patchProps);
-        dFigH2.Name=[subject ': initial FHC, neck axis, ... (Debug Figure)'];
+        dFigH2.Name=['Subject ' subject ': FHC, neck axis, shaft axis, ... (debug figure)'];
         dFigH2.NumberTitle='Off';
         mouseControl3d(dAxH2)
         % drawSphere(dAxH2, [FHC, Radius])

@@ -1,9 +1,15 @@
 function TFM = Tabletop(femur, side, HJC, LMIdx, varargin)
-
-% Femoral bone CS based on the tabletop plane:
+%TABLETOP calculates the femoral coordinate system based on the table top plane
+%
+% DEFINITION:
 %   - X axis: Axis through the medial and lateral posterior condyle 
 %   - Y axis: Normal of the tabletop plane
 %   - Z axis: Orthogonal to Y and Z axis
+%
+% AUTHOR: Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% LICENSE: EUPL v1.2
+%
 
 % inputs
 p = inputParser;
@@ -54,7 +60,9 @@ if visu
     patchProps.FaceAlpha = 0.75;
     patchProps.EdgeLighting = 'gouraud';
     patchProps.FaceLighting = 'gouraud';
-    [~, axH] = visualizeMeshes(femurCS, patchProps);
+    [~, axH, figH] = visualizeMeshes(femurCS, patchProps);
+    figH.NumberTitle = 'off';
+    figH.Name = 'Tabletop coordinate system';
     drawAxis3d(axH, 35,1.5)
     
     % Landmarks

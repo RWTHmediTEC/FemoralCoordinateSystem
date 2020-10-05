@@ -1,6 +1,12 @@
 function props = inertiaInfo(mesh)
+%INERTIAINFO calculates basic properties of a mesh, such as the volume, etc.
+%
+% AUTHOR: Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% LICENSE: EUPL v1.2
+%
 
-% Get Volume (V), Center of Mass (CoM), Inertia Tensor (J) of the Bone
+% Get Volume (V), Center of Mass (CoM), Inertia Tensor (J) of the mesh
 [props.V, props.CoM, props.J] = VolumeIntegrate(mesh.vertices, mesh.faces);
 
 % Get Principal Axes (pAxes) & Principal Moments of Inertia (Jii)
