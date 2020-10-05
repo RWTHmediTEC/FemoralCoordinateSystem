@@ -51,8 +51,8 @@ end
 %% Inertia Alignment
 if inertiaSwitch
     % Get inertia transformation
-    inertiaProps = inertiaInfo(template_mesh);
-    inertiaTFM = inv(inertiaProps.inverseInertiaTFM);
+    inertiaProps = inertiaInfo(template_mesh); %#ok<*UNRCH>
+    inertiaTFM = inertiaProps.InertiaTFM;
     % Transform the vertices into the temporary inertia coordinate system
     meshInertia.vertices = ...
         transformPoint3d(template_mesh.vertices, inertiaTFM);

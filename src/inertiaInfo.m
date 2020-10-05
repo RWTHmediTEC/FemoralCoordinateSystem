@@ -1,17 +1,19 @@
-function props = inertiaInfo(Mesh)
+function props = inertiaInfo(mesh)
 
 % Get Volume (V), Center of Mass (CoM), Inertia Tensor (J) of the Bone
-[props.V, props.CoM, props.J] = VolumeIntegrate(Mesh.vertices, Mesh.faces);
+[props.V, props.CoM, props.J] = VolumeIntegrate(mesh.vertices, mesh.faces);
 
 % Get Principal Axes (pAxes) & Principal Moments of Inertia (Jii)
-[props.pAxes, props.Jii] = eig(props.J); % Sign of the Eigenvectors can change (In agreement with their general definition)
+% Sign of the Eigenvectors can change (in agreement with their general definition)
+[props.pAxes, props.Jii] = eig(props.J);
 
 % Keep the determinant positive
 if det(props.pAxes) < 0
     props.pAxes = -1*props.pAxes;
 end
 
-% Create a affine transformation to move the Bone into his own Inertia System
-props.inverseInertiaTFM = [ [props.pAxes props.CoM]; [0 0 0 1] ];
+% Create a transformation to move the mesh in the coordinate system based 
+% on the principial axes of inertia and the center of mass of the mesh.
+props.InertiaTFM = [props.pAxes' [0 0 0]'; 0 0 0 1]*[eye(3) -props.CoM; 0 0 0 1];
 
 end

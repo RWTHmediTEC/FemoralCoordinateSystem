@@ -51,7 +51,7 @@ addParameter(p,'FHC',nan, isPoint3d);
 isLine3d = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,6]});
 addParameter(p,'NeckAxis',nan, isLine3d);
-validCSStrings={'Wu2002','Bergmann2016','Tabletop','MediTEC'};
+validCSStrings = {'Wu2002','Bergmann2016','Tabletop','MediTEC'};
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validCSStrings)));
 addParameter(p,'visualization',true,logParValidFunc);
 addParameter(p,'verbose',false,logParValidFunc);
@@ -72,7 +72,7 @@ debugVisu = logical(p.Results.debugVisualization);
 %% Algorithm
 % Get inertia transformation for the input femur (subject)
 femurProps = inertiaInfo(femur);
-inertiaTFM = inv(femurProps.inverseInertiaTFM);
+inertiaTFM = femurProps.InertiaTFM;
 
 % Transform the vertices into the temporary inertia coordinate system
 femurInertia = transformPoint3d(femur, inertiaTFM);
@@ -439,8 +439,8 @@ end
 
 
 %% PFEA and CEA
-LM.PFEA = transformLine3d(PFEA, femurProps.inverseInertiaTFM*xReflection*inv(USP_TFM));  %#ok<MINV>
-LM.CEA = transformLine3d(CEA, femurProps.inverseInertiaTFM*xReflection*inv(USP_TFM)); %#ok<MINV>
+LM.PFEA = transformLine3d(PFEA, inv(femurProps.InertiaTFM)*xReflection*inv(USP_TFM));  %#ok<MINV>
+LM.CEA = transformLine3d(CEA, inv(femurProps.InertiaTFM)*xReflection*inv(USP_TFM)); %#ok<MINV>
 LMIdx.PFEA = lineToVertexIndices(LM.PFEA, femur);
 LMIdx.CEA = lineToVertexIndices(LM.CEA, femur);
 
@@ -455,7 +455,7 @@ TFM.Wu2002 = Wu2002(femur,side,FHC,LMIdx, 'visu',CSIdx(1));
 TFM.Bergmann2016 = Bergmann2016(femur, side, FHC, LMIdx, 'visu',CSIdx(2));
 TFM.Tabletop = Tabletop(femur, side, FHC, LMIdx, 'visu',CSIdx(3));
 TFM.MediTEC = MediTEC(femur, side, FHC, LMIdx, 'visu',CSIdx(4));
-TFM.USP = USP_TFM*xReflection*inertiaTFM; %#ok<MINV>
+TFM.USP = USP_TFM*xReflection*inertiaTFM;
 
 TFM2AFCS = TFM.(definition);
 

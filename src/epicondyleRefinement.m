@@ -1,12 +1,14 @@
 function [MEC_USP, LEC_USP] = epicondyleRefinement(distalFemurUSP, CEA, MEC_map, LEC_map, varargin)
 %EPICONDYLEREFINEMENT refines the position of the epicondyles
 %
-% INPUTS
+% INPUT
 %   distalFemurUSP: Distal part of the femur in the unified sagittal plane
-%                   coordinate system (USP CS, see USP.m). This function is
-%                   designed for the
-%   CEA: The  central elliptic axis in the USP CS.
-%   MEC_mao & LEC_map: Mapped epicondyles from the template in the USP CS.
+%                   coordinate system (USP CS, see USP.m).
+%   CEA: The central elliptic axis in the USP CS.
+%   MEC_map & LEC_map: Mapped epicondyles from the template in the USP CS.
+%
+% OUTPUT
+%   MEC_USP & LEC_USP: Final epicondyles in the USP CS.
 %
 % AUTHOR: Maximilian C. M. Fischer
 % COPYRIGHT (C) 2020 Maximilian C. M. Fischer

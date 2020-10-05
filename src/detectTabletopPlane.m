@@ -2,19 +2,19 @@ function LM_Idx = detectTabletopPlane(femur, side, FHC, neckAxis, LM_Idx, vararg
 %DETECTTABLETOPPLANE identifies the table top plane of the femur
 % 
 %   Definition of the tabletop plane:
-%	- Resection of the femoral neck including the head (in case 
+%	  - Resection of the femoral neck including the head (in case 
 %     retroversion is present)
-%   - Position the posterior side of the femur on a table
-%   - The three contact points define the tabletop plane
+%     - Position the posterior side of the femur on a table
+%     - The three contact points define the tabletop plane
 %
 %   INPUTS
-%       femur: femur mesh
-%       side: 'L' or 'R': left or right femur
-%       FHC: femoral head center
-%       neckAxis: neckAxis(1:3) is the center of the neck isthmus and 
-%       neckAxis(4:6) is the normal of the neck istmus plane (see FNA.m)
-%       LM_Idx: Struct containing the vertex indices of medial and lateral
-%       epicondyle mapped from the template.
+%     femur: femur mesh
+%     side: 'L' or 'R': left or right femur
+%     FHC: femoral head center
+%     neckAxis: neckAxis(1:3) is the center of the neck isthmus and 
+%     neckAxis(4:6) is the normal of the neck istmus plane (see FNA.m)
+%     LM_Idx: Struct containing the vertex indices of medial and lateral
+%     epicondyle mapped from the template.
 %
 % AUTHOR: Maximilian C. M. Fischer
 % COPYRIGHT (C) 2020 Maximilian C. M. Fischer
@@ -78,7 +78,7 @@ if visu
     % drawPoint3d(midPoint3d(MPC,LPC),'Marker','o','MarkerEdgeColor','k','MarkerFaceColor','k')
     patch(axH, proximalPart, patchProps);
     % Neck axis
-    drawArrow3d(axH, neckAxis(1:3),-normalizeVector3d(neckAxis(4:6))*40,'g') % flipped for better visu
+    drawArrow3d(axH, neckAxis(1:3),-normalizeVector3d(neckAxis(4:6))*40,'g') % reversed for better visu
 end
 
 %% Refinement of tabletop plane
@@ -101,8 +101,8 @@ femurCS = transformPoint3d(femur, TFM);
 % Sanity checks
 tabletopPlane = createPlane(LPC, MPC, PTC);
 assert(sum(isBelowPlane(MCMesh.vertices, tabletopPlane)) <= 1)
-assert(any(isBelowPlane(LCMesh.vertices, tabletopPlane)) <= 1)
-assert(any(isBelowPlane(proximalPart.vertices, tabletopPlane)) <= 1)
+assert(sum(isBelowPlane(LCMesh.vertices, tabletopPlane)) <= 1)
+assert(sum(isBelowPlane(proximalPart.vertices, tabletopPlane)) <= 1)
 
 % Get the vertex indices of the tabletop points
 switch side
