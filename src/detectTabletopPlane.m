@@ -7,7 +7,7 @@ function LM_Idx = detectTabletopPlane(femur, side, FHC, neckAxis, LM_Idx, vararg
 %     - Position the posterior side of the femur on a table
 %     - The three contact points define the tabletop plane
 %
-%   INPUTS
+%   INPUT
 %     femur: femur mesh
 %     side: 'L' or 'R': left or right femur
 %     FHC: femoral head center
@@ -15,6 +15,13 @@ function LM_Idx = detectTabletopPlane(femur, side, FHC, neckAxis, LM_Idx, vararg
 %     neckAxis(4:6) is the normal of the neck istmus plane (see FNA.m)
 %     LM_Idx: Struct containing the vertex indices of medial and lateral
 %     epicondyle mapped from the template.
+%
+%   OUTPUT
+%     LM_Idx = A struct containing the vertex indices of the femoral mesh 
+%     defining the three contact points with the fields:
+%     - MedialPosteriorCondyle
+%     - LateralPosteriorCondyle
+%     - PosteriorTrochantericCrest
 %
 % AUTHOR: Maximilian C. M. Fischer
 % COPYRIGHT (C) 2020 Maximilian C. M. Fischer

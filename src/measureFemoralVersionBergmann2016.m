@@ -3,8 +3,8 @@ function femoralVersion = measureFemoralVersionBergmann2016(HJC, P1, P2, MPC, LP
 %
 % Definition of femoral version (aka torsion) based on landmarks described 
 % in "2016 - Bergmann et al. - Standardized Loads Acting in Hip Implants":
-% Angle between neck axis and condylar line projected on the transverse 
-% plane.
+% The angle between the neck axis and posterior condylar line projected on 
+% the transverse plane.
 %
 % AUTHOR: Maximilian C. M. Fischer
 % COPYRIGHT (C) 2020 Maximilian C. M. Fischer
@@ -13,7 +13,7 @@ function femoralVersion = measureFemoralVersionBergmann2016(HJC, P1, P2, MPC, LP
 
 transversePlane = createPlane(P2, P1 - P2);
 projPostCond = projPointOnPlane([MPC; LPC], transversePlane);
-% Posterior condyle line projected onto the transverse plane
+% Posterior condylar line projected onto the transverse plane
 projPostCondLine = normalizeLine3d(createLine3d(projPostCond(1,:), projPostCond(2,:)));
 
 projNeckPoints = projPointOnPlane([HJC; P1], transversePlane);

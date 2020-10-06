@@ -8,7 +8,7 @@ function [shaftAxis, shaftAxisIdx] = detectShaftAxis(femur, FHC, varargin)
 %   - Fit an ellipsoid to the remaining vertices of the shaft and take the 
 %     major axis as the shaft axis.
 %
-%   INPUTS
+%   INPUT
 %     femur: femur mesh
 %     FHC: (approximate) femoral head center (FHC). Required to 
 %     distinguish between proximal and distal end.

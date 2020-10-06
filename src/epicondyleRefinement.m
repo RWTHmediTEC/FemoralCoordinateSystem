@@ -8,7 +8,7 @@ function [MEC_USP, LEC_USP] = epicondyleRefinement(distalFemurUSP, CEA, MEC_map,
 %   MEC_map & LEC_map: Mapped epicondyles from the template in the USP CS.
 %
 % OUTPUT
-%   MEC_USP & LEC_USP: Final epicondyles in the USP CS.
+%   MEC_USP & LEC_USP: Final landmarks of the epicondyles in the USP CS.
 %
 % AUTHOR: Maximilian C. M. Fischer
 % COPYRIGHT (C) 2020 Maximilian C. M. Fischer

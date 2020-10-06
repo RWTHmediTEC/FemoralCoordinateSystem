@@ -1,5 +1,5 @@
 function props = inertiaInfo(mesh)
-%INERTIAINFO calculates basic properties of a mesh, such as the volume, etc.
+%INERTIAINFO calculates basic mesh properties, such as the volume, etc.
 %
 % AUTHOR: Maximilian C. M. Fischer
 % COPYRIGHT (C) 2020 Maximilian C. M. Fischer

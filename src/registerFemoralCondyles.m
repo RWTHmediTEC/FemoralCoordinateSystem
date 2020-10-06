@@ -21,7 +21,7 @@ NoS = length(Steps);
 R = cell(1,NoS);
 MM = nan(1,NoS);
 for i = 1:length(R)
-    % rotation around the  x-axis
+    % Rotation around the x-axis
     R{i} = createRotationOx(deg2rad(Steps(i)));
     [~, DD] = knnsearch(templateKDTree, transformPoint3d(distalSubject, R{i}));
     MM(i) = sum(DD);

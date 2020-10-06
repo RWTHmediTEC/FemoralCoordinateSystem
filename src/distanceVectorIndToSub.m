@@ -1,5 +1,8 @@
 function [i, j] = distanceVectorIndToSub(m, k)
-% Copied from https://stackoverflow.com/a/41269711 by edelburg
+% Copied from https://stackoverflow.com/a/41269711
+%
+% AUTHOR: edelburg
+%
 
 % m = number of observations or points
 
