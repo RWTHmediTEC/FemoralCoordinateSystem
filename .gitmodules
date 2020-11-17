@@ -1,6 +1,6 @@
 [submodule "src/internal/NonRigidICP"]
 	path = src/internal/NonRigidICP
-	url = //sagnix/Programmierung/public/Matlab/NonRigidICP
+	url = https://github.com/RWTHmediTEC/NonRigidICP
 [submodule "src/external/AnatomicalViewTools"]
 	path = src/external/AnatomicalViewTools
 	url = https://github.com/MCM-Fischer/AnatomicalViewTools
