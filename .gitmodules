@@ -6,7 +6,7 @@
 	url = https://github.com/MCM-Fischer/AnatomicalViewTools
 [submodule "src/internal/FemoralNeckAxis"]
 	path = src/internal/FemoralNeckAxis
-	url = //machtnix/benutzer/Max/Repos/FemoralNeckAxis
+	url = https://github.com/RWTHmediTEC/FemoralNeckAxis
 [submodule "src/internal/DistalFemoralUnifiedSagittalPlane"]
 	path = src/internal/DistalFemoralUnifiedSagittalPlane
 	url = //machtnix/benutzer/Max/Repos/DistalFemoralUnifiedSagittalPlane
