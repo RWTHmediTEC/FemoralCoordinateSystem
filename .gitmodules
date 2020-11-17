@@ -9,7 +9,7 @@
 	url = https://github.com/RWTHmediTEC/FemoralNeckAxis
 [submodule "src/internal/DistalFemoralUnifiedSagittalPlane"]
 	path = src/internal/DistalFemoralUnifiedSagittalPlane
-	url = //machtnix/benutzer/Max/Repos/DistalFemoralUnifiedSagittalPlane
+	url = https://github.com/RWTHmediTEC/DistalFemoralUnifiedSagittalPlane
 [submodule "src/internal/DistalFemoralExtremePoints"]
 	path = src/internal/DistalFemoralExtremePoints
 	url = //machtnix/benutzer/Max/Repos/DistalFemoralExtremePoints
