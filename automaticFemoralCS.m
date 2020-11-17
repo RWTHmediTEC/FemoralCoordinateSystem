@@ -181,7 +181,9 @@ if debugVisu
 end
 
 % Non-rigid ICP registration
-disp('____________ Morphing of the template mesh to the target _____________')
+if verb
+    disp('____________ Morphing of the template mesh to the target _____________')
+end
 NRICP_ALPHA = [1e10 1e9 1e8 1e7 1e5 1e3 10 0.1 0.001]';
 templateNICP = nonRigidICP(templatePreReg, femurCondReg, ...
     'alpha', NRICP_ALPHA,...
@@ -315,7 +317,9 @@ end
 
 
 %% Refinement of the neck axis
-disp('_____________________ Refinement of the neck axis ____________________')
+if verb
+    disp('_____________________ Refinement of the neck axis ____________________')
+end
 try
     NeckAxis = femoralNeckAxis(femur, side, NeckAxis, ShaftAxis, ...
         'visu',debugVisu, 'verbose',verb, 'subject',subject);
@@ -351,7 +355,9 @@ LMIdx = detectTabletopPlane(femur, side, FHC, NeckAxis, LMIdx, 'visu', debugVisu
 
 
 %% Refinement of the epicondyles
-disp('___________________ Refinement of the epicondyles ____________________')
+if verb
+    disp('___________________ Refinement of the epicondyles ____________________')
+end
 % Axis through the epicondyles in the inertia system
 CondyleAxisInertia = createLine3d(...
     femurInertia.vertices(LMIdx.MedialEpicondyle,:),...
@@ -406,11 +412,11 @@ LMIdx.ICN_mapped = LMIdx.IntercondylarNotch;
 extremePoints = distalFemoralExtremePoints(distalFemurUSP, 'R', PFEA, 'visu', debugVisu, 'debug',0);
 extremePointsInertia = structfun(@(x) transformPoint3d(x, inv(USP_TFM)), extremePoints,'uni',0);
 [~, LMIdx.IntercondylarNotch] = pdist2(femurInertia.vertices, ...
-    extremePointsInertia.Intercondylar, 'euclidean','Smallest',1);
+    extremePointsInertia.ICN, 'euclidean','Smallest',1);
 [~, LMIdx.MedialProximoposteriorCondyle] = pdist2(femurInertia.vertices, ...
-    extremePointsInertia.Medial, 'euclidean','Smallest',1);
+    extremePointsInertia.MPPC, 'euclidean','Smallest',1);
 [~, LMIdx.LateralProximoposteriorCondyle] = pdist2(femurInertia.vertices, ...
-    extremePointsInertia.Lateral, 'euclidean','Smallest',1);
+    extremePointsInertia.LPPC, 'euclidean','Smallest',1);
 
 if debugVisu
     ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
