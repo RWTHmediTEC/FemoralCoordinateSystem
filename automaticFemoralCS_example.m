@@ -14,17 +14,20 @@ if ~exist('VSD', 'dir')
     end
 end
 
-% Load subject names
-load('VSD\MATLAB\res\VSD_Subjects.mat', 'Subjects')
-Subjects = table2cell(Subjects);
-Subjects(1:2:20,4) = {'L'}; Subjects(2:2:20,4) = {'R'};
+% Select subjects of the VSD
+Subjects = [1 9 13 19 23 24 27 35 36 42 46 49 50 55 56 57 61 62 64 66];
+Subjects = arrayfun(@(x) ['z' num2str(x, '%03i')], Subjects', 'uni',0);
+Subjects(1:2:20,2) = {'L'}; Subjects(2:2:20,2) = {'R'};
 
 for s=1%:size(Subjects, 1)
-    load(['VSD\Bones\' Subjects{s,1} '.mat'], 'B');
+    name = Subjects{s,1};
+    side = Subjects{s,2};
     
-    femur = B(ismember({B.name}, ['Femur_' Subjects{s,4}])).mesh;
-    [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, Subjects{s,4},...
-        'definition','MediTEC', 'visu',1, 'verb',0, 'debug',0,'Subject', Subjects{s,1});
+    load(['VSD\Bones\' name '.mat'], 'B');
+    
+    femur = B(ismember({B.name}, ['Femur_' side])).mesh;
+    [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, side,...
+        'definition','MediTEC', 'visu',1, 'verb',0, 'debug',0,'Subject', name);
     
 end
 
