@@ -12,4 +12,4 @@
 	url = https://github.com/RWTHmediTEC/DistalFemoralUnifiedSagittalPlane
 [submodule "src/internal/DistalFemoralExtremePoints"]
 	path = src/internal/DistalFemoralExtremePoints
-	url = //machtnix/benutzer/Max/Repos/DistalFemoralExtremePoints
+	url = https://github.com/RWTHmediTEC/DistalFemoralExtremePoints
