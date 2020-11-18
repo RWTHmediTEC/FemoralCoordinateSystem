@@ -26,8 +26,8 @@ for s=1%:size(Subjects, 1)
     load(['VSD\Bones\' name '.mat'], 'B');
     
     femur = B(ismember({B.name}, ['Femur_' side])).mesh;
-    [fwTFM2AFCS, LMIdx, HJC, LM] = automaticFemoralCS(femur, side,...
-        'definition','MediTEC', 'visu',1, 'verb',0, 'debug',0,'Subject', name);
+    [TFM2FCS, LM, LMIdx, TFM] = automaticFemoralCS(femur, side,...
+        'definition','MediTEC', 'visu',1, 'verb',1, 'debug',0, 'Subject',name);
     
 end
 
