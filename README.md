@@ -1,5 +1,5 @@
 # FemoralCoordinateSystem
-MATLAB function for the identification of femoral landmarks, axes, planes and bone coordinate systems using a 3D surface model
+MATLAB function for the identification of femoral landmarks, axes, planes and bone coordinate systems using a 3D surface model.
 
 ## Reference
 Please cite the following paper:<br/>
