@@ -1,5 +1,5 @@
-function [TFM2AFCS, LMIdx, FHC, LM, TFM] = automaticFemoralCS(femur, side, varargin)
-%AUTOMATICFEMORALCS Calculate an femoral coordinate system (AFCS)
+function [TFM2FCS, LM, LMIdx, TFM] = automaticFemoralCS(femur, side, varargin)
+%AUTOMATICFEMORALCS Calculate a femoral coordinate system (FCS)
 %
 % REQUIRED INPUT:
 %   femur: A "clean" mesh as struct with the fields vertices and faces
@@ -8,9 +8,9 @@ function [TFM2AFCS, LMIdx, FHC, LM, TFM] = automaticFemoralCS(femur, side, varar
 %   side: 'L' or 'R': left or right femur
 %
 % OPTIONAL INPUT:
-%   'FHC': 1x3 vector: Coordinates of the femoral head / hip joint center
-%        in the coordinate system (CS) of the input femur mesh
-%   'definition': The definition to construct the femoral CS
+%   'FHC': Coordinates of the femoral head / hip joint center in the 
+%          coordinate system (CS) of the input femur mesh
+%   'definition': The definition to construct the FCS
 %       'Wu2002' - 2002 - Wu et al. - ISB recommendation on definitions
 %           of joint coordinate systems of various joints for the reporting
 %           of human joint motion - part I: ankle, hip, and spine (default)
@@ -19,20 +19,22 @@ function [TFM2AFCS, LMIdx, FHC, LM, TFM] = automaticFemoralCS(femur, side, varar
 %       'Tabletop' - Defined by the table top plane
 %       'MediTEC' - Defined by the mechanical axis and table top plane
 %   'visualization': true (default) or false
-%   'subject': Char: Identification of the subject. Default is '?'.
+%   'subject': Identification of the subject. Default is '?'.
 %
 % OUTPUT:
-%   TFM2AFCS: Transformation of the femur into the femoral CS
+%   TFM2FCS: Transformation of the femur into the FCS using the selected
+%       definition.
+%   LM: Coordinates of landmarks in the CS of the input femur mesh.
 %   LMIdx: Landmark indices into the vertices of the femur
-%   FHC: Coordinates of the femoral head center
+%   TFM: Transformations of the femur into the various FCS (see above).
 %
 % TODO:
-%   - Add option to select of anatomical orientation of the femur CS
+%   - Add option to select the anatomical orientation of the FCS
 %
 % AUTHOR: Maximilian C. M. Fischer
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
-% VERSION: 1.0.3
-% DATE: 2018-08-24
+% VERSION: 2.0.0
+% DATE: 2020-11-18
 % COPYRIGHT (C) 2020 Maximilian C. M. Fischer
 % LICENSE: EUPL v1.2
 % 
@@ -227,7 +229,7 @@ end
 
 % Areas
 load('template_areas.mat','areas')
-% Delete not required area
+% Delete unnecessary areas 
 areas(3,:)=[]; % Shaft
 areas=[areas,cell(size(areas,1),1)];
 for a=1:size(areas,1)
@@ -451,7 +453,7 @@ LMIdx.PFEA = lineToVertexIndices(LM.PFEA, femur);
 LMIdx.CEA = lineToVertexIndices(LM.CEA, femur);
 
 
-%% Construct the femoral CS
+%% Construct the FCS
 if visu
     CSIdx = ismember(validCSStrings,definition);
 else
@@ -463,7 +465,7 @@ TFM.Tabletop = Tabletop(femur, side, FHC, LMIdx, 'visu',CSIdx(3));
 TFM.MediTEC = MediTEC(femur, side, FHC, LMIdx, 'visu',CSIdx(4));
 TFM.USP = USP_TFM*xReflection*inertiaTFM;
 
-TFM2AFCS = TFM.(definition);
+TFM2FCS = TFM.(definition);
 
 
 %% Save landmarks in cartesian coordinates in input femur CS
