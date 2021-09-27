@@ -8,7 +8,7 @@ function TFM  = MediTEC(femur, side, HJC, LMIdx, varargin)
 % X axis: Orthogonal to the Y and Z axis
 %
 % AUTHOR: Maximilian C. M. Fischer
-% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% COPYRIGHT (C) 2021 Maximilian C. M. Fischer
 % LICENSE: EUPL v1.2
 %
 
@@ -17,34 +17,24 @@ p = inputParser;
 logParValidFunc=@(x) (islogical(x) || isequal(x,1) || isequal(x,0));
 addRequired(p,'femur',@(x) isstruct(x) && isfield(x, 'vertices') && isfield(x,'faces'))
 addRequired(p,'side',@(x) any(validatestring(x,{'R','L'})));
+isPoint3d = @(x) validateattributes(x,{'numeric'},...
+    {'nonempty','nonnan','real','finite','size',[1,3]});
+addRequired(p,'HJC', isPoint3d);
 addOptional(p,'visualization',true,logParValidFunc);
-parse(p,femur,side,varargin{:});
+parse(p, femur, side, HJC, varargin{:});
 
 femur = p.Results.femur;
+side = p.Results.side;
+HJC = p.Results.HJC;
 visu = p.Results.visualization;
 
 %% Landmarks
-if isfield(LMIdx,'MedialPosteriorCondyle')
-    MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
-elseif isfield(LMIdx,'MPC')
-    MPC = femur.vertices(LMIdx.MPC,:);
-else
-    error('Medial posterior condyle (MPC) is missing!')
-end
-if isfield(LMIdx,'LateralPosteriorCondyle')
-    LPC = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
-elseif isfield(LMIdx,'LPC')
-    LPC = femur.vertices(LMIdx.LPC,:);
-else
-    error('Lateral posterior condyle (LPC) is missing!')
-end
-if isfield(LMIdx,'IntercondylarNotch')
-    ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
-elseif isfield(LMIdx,'ICN')
-    ICN = femur.vertices(LMIdx.ICN,:);
-else
-    error('Intercondylar notch (ICN) is missing!')
-end
+MPCnames = {'MedialPosteriorCondyle','MPC'};
+MPC = extractLandmark(femur, LMIdx, MPCnames);
+LPCnames = {'LateralPosteriorCondyle','LPC'};
+LPC = extractLandmark(femur, LMIdx, LPCnames);
+ICNnames = {'IntercondylarNotch','ICN'};
+ICN = extractLandmark(femur, LMIdx, ICNnames);
 
 %% Axes
 mechanicalAxis = createLine3d(ICN, HJC);
@@ -101,6 +91,23 @@ if visu
     % end
     
     anatomicalViewButtons(axH, 'RAS')
+end
+
+end
+
+function landmark = extractLandmark(femur, LMIdx, possibleLandmarkNames)
+
+LMs = fieldnames(LMIdx);
+LMnameIdx = find(contains(LMs, possibleLandmarkNames),1);
+if isempty(LMnameIdx)
+    error(['Missing landmark: ' strjoin(possibleLandmarkNames) '!'])
+end
+landmark = LMIdx.(LMs{LMnameIdx});
+if isscalar(landmark)
+    landmark = femur.vertices(landmark,:);
+end
+if length(landmark(:)) ~= 3
+    error('Unknown landmark format!')
 end
 
 end
