@@ -23,37 +23,42 @@ function varargout = drawAxis3d(varargin)
 %   view([135,15]); lighting('phong'); camlight('head'); axis('equal')
 %   xlabel X; ylabel Y; zlabel Z
 %
-%   See also
-%   drawAxisCube
+%   See also 
+%     drawAxisCube
 %
+
 % ------
 % Author: David Legland
-% e-mail: david.legland@nantes.inra.fr
-% Created: 2007-08-14,    using Matlab 7.4.0.287 (R2007a)
-% Copyright 2007 INRA - BIA PV Nantes - MIAJ Jouy-en-Josas.
+% E-mail: david.legland@inrae.fr
+% Created: 2007-08-14, using Matlab 7.4.0.287 (R2007a)
+% Copyright 2007-2023 INRA - BIA PV Nantes - MIAJ Jouy-en-Josas
 
-% Check if axes handle is specified
-hAx = gca;
-if ~isempty(varargin)
+% extract handle of axis to draw on
+if isempty(varargin)
+    hAx = gca;
+else
     if isAxisHandle(varargin{1})
         hAx = varargin{1};
-        varargin(1)=[];
+        varargin(1) = [];
+    else
+        hAx = gca;
     end
 end
+    
 
 % Parsing
 p = inputParser;
-addOptional(p,'L',1, @(x)validateattributes(x,{'numeric'},...
+addOptional(p, 'L', 1, @(x)validateattributes(x, {'numeric'},...
     {'scalar','nonempty','real','finite','positive','nonnan'}));
-addOptional(p,'R',[], @(x)validateattributes(x,{'numeric'},...
+addOptional(p, 'R', [], @(x)validateattributes(x, {'numeric'},...
     {'scalar','nonempty','real','finite','positive','nonnan'}));
-addParameter(p,'TFM',eye(4), @isTransform3d);
+addParameter(p, 'TFM', eye(4), @isTransform3d);
 parse(p,varargin{:});
 
 L = p.Results.L;
 R = p.Results.R;
 if isempty(R)
-    R=L/10;
+    R = L/10;
 elseif R/L > 0.1
     R = (0.1-eps)*L;
     warning('Value of R is invalid and was ignored!')
@@ -67,10 +72,10 @@ color = eye(3,3);
 
 % draw three arrows and a ball
 hold on;
-sh=drawArrow3d(hAx, origin, vector*L, color, 'arrowRadius', R/L);
-sh(4)=drawSphere(hAx,[origin(1,:) 2*R], 'faceColor', 'black');
+sh = drawArrow3d(hAx, origin, vector*L, color, 'arrowRadius', R/L);
+sh(4) = drawSphere(hAx, [origin(1,:) 2*R], 'faceColor', 'black');
 gh = hggroup(hAx);
-set(sh,'Parent',gh)
+set(sh, 'Parent', gh)
 
 if nargout > 0
     varargout = {gh};

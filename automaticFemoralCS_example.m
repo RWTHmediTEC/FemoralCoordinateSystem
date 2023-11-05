@@ -1,9 +1,11 @@
-clearvars; close all; opengl hardware
+clearvars; close all
+
+addpath(genpath('src'))
 
 % Clone example data
 if ~exist('VSD', 'dir')
     try
-        !git clone https://github.com/RWTHmediTEC/VSDFullBodyBoneModels VSD
+        !git clone https://github.com/MCM-Fischer/VSDFullBodyBoneModels VSD
         rmdir('VSD/.git', 's')
     catch
         warning([newline 'Clone (or copy) the example data from: ' ...
@@ -15,19 +17,22 @@ if ~exist('VSD', 'dir')
 end
 
 % Select subjects of the VSD
-Subjects = [1 9 13 19 23 24 27 35 36 42 46 49 50 55 56 57 61 62 64 66];
-Subjects = arrayfun(@(x) ['z' num2str(x, '%03i')], Subjects', 'uni',0);
-Subjects(1:2:20,2) = {'L'}; Subjects(2:2:20,2) = {'R'};
+subjectXLSX = 'VSD\MATLAB\res\VSD_Subjects.xlsx';
+Subjects = readtable(subjectXLSX);
+Subjects{2:2:height(Subjects),7} = 'R';
+Subjects{1:2:height(Subjects),7} = 'L'; 
 
 for s=1%:size(Subjects, 1)
-    name = Subjects{s,1};
-    side = Subjects{s,2};
+    id = Subjects{s,1}{1};
+    side = Subjects{s,7};
     
-    load(['VSD\Bones\' name '.mat'], 'B');
+    load(['VSD\Bones\' id '.mat'], 'B');
     
     femur = B(ismember({B.name}, ['Femur_' side])).mesh;
+    % Remove sesamoid bones if present
+    femur = splitMesh(femur, 'mostVertices');
     [TFM2FCS, LM, LMIdx, TFM] = automaticFemoralCS(femur, side,...
-        'definition','MediTEC', 'visu',1, 'verb',1, 'debug',0, 'Subject',name);
+        'definition','MediTEC', 'visu',1, 'verb',0, 'debug',0, 'Subject',id);
     
 end
 
