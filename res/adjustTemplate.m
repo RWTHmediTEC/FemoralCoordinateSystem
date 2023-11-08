@@ -1,9 +1,9 @@
-clearvars; close all; opengl hardware
+clearvars; close all
 
 addpath('..\..\..\..\General\Code\#public')
 addpath(genpath('..\src'))
 
-load('template_mesh.mat')
+load('template.mat')
 
 %% Switches
 manualSelectionSwitch = 0;
@@ -13,13 +13,13 @@ weightSwitch = 0;
 
 %% Manual landmark selection
 if manualSelectionSwitch
-    % \\sagnix\Programmierung\public\Matlab\ManualLandmarkSelection
+    % https://github.com/MCM-Fischer/ManualLandmarkSelection
     addpath('..\..\..\..\General\Code\ManualLandmarkSelection')
     
     if exist('template_landmarks.mat','file')
         load('template_landmarks.mat','landmarks')
-        LM=[fieldnames(landmarks),...
-            mat2cell(template_mesh.vertices(cell2mat(struct2cell(landmarks)),:),...
+        LM = [fieldnames(landmarks),...
+            mat2cell(template.vertices(cell2mat(struct2cell(landmarks)),:),...
             ones(1,length(fieldnames(landmarks))),3)];
     else
         LM = {'GreaterTrochanter';'LesserTrochanter';...
@@ -27,8 +27,8 @@ if manualSelectionSwitch
             'MedialPosteriorCondyle';'LateralPosteriorCondyle';...
             'IntercondylarNotch';'PosteriorTrochantericCrest'};
     end
-    LM = selectLandmarks(template_mesh, LM);
-    template_mesh_KDTree=createns(template_mesh.vertices);
+    LM = selectLandmarks(template, LM);
+    template_mesh_KDTree=createns(template.vertices);
     Idx = knnsearch(template_mesh_KDTree, cell2mat(LM(:,2)));
     for lm=1:size(LM,1)
         landmarks.(LM{lm,1})=Idx(lm);
@@ -36,6 +36,7 @@ if manualSelectionSwitch
     save('template_landmarks.mat','landmarks')
     
     %% Manual face selection
+    % https://github.com/MCM-Fischer/ManualFaceSelection
     addpath('..\..\..\..\General\Code\ManualFaceSelection')
     
     if exist('template_areas.mat','file')
@@ -43,7 +44,7 @@ if manualSelectionSwitch
     else
         areas = {'Head';'Neck';'Shaft'};
     end
-    areas = selectFaces(template_mesh, areas);
+    areas = selectFaces(template, areas);
     
     save('template_areas.mat','areas')
 end
@@ -51,12 +52,12 @@ end
 %% Inertia Alignment
 if inertiaSwitch
     % Get inertia transformation
-    inertiaProps = inertiaInfo(template_mesh); %#ok<*UNRCH>
+    inertiaProps = inertiaInfo(template); %#ok<*UNRCH>
     inertiaTFM = inertiaProps.InertiaTFM;
     % Transform the vertices into the temporary inertia coordinate system
     meshInertia.vertices = ...
-        transformPoint3d(template_mesh.vertices, inertiaTFM);
-    meshInertia.faces = template_mesh.faces;
+        transformPoint3d(template.vertices, inertiaTFM);
+    meshInertia.faces = template.faces;
     
     MechanicalAxis = [0 0 0 1 0 0];
     

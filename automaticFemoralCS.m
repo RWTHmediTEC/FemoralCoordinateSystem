@@ -4,7 +4,7 @@ function [TFM2FCS, LM, LMIdx, TFM] = automaticFemoralCS(femur, side, varargin)
 % REQUIRED INPUT:
 %   femur: A "clean" mesh as struct with the fields vertices and faces
 %       "Clean" means a closed outer surface without holes or tunnels,
-%       normals are oriented outwards, no duplicate vertices, ...
+%       normals are oriented outwards, no duplicate vertices, etc.
 %   side: 'L' or 'R': left or right femur
 %
 % OPTIONAL INPUT:
@@ -55,6 +55,7 @@ isLine3d = @(x) validateattributes(x,{'numeric'},...
 addParameter(p,'NeckAxis',nan, isLine3d);
 validCSStrings = {'Wu2002','Bergmann2016','Tabletop','MediTEC'};
 addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validCSStrings)));
+addParameter(p,'minimalRefinement',true,logParValidFunc);
 addParameter(p,'visualization',true,logParValidFunc);
 addParameter(p,'verbose',false,logParValidFunc);
 addParameter(p,'subject','?',@(x) validateattributes(x,{'char'},{'nonempty'}));
@@ -66,6 +67,7 @@ side = upper(p.Results.side(1));
 FHC = p.Results.FHC;
 NeckAxis = p.Results.NeckAxis;
 definition = p.Results.definition;
+minimalRefinement = p.Results.minimalRefinement;
 visu = logical(p.Results.visualization);
 verb = logical(p.Results.verbose);
 subject = p.Results.subject;
@@ -96,7 +98,7 @@ if debugVisu
     BW = 0.005;
     BSX = (1-(NOP+1)*BW)/NOP;
     set(0,'defaultAxesFontSize',14)
-    dFigH1 = figure('Units','pixels','renderer','opengl', 'Color', 'w');
+    dFigH1 = figure('Units','pixels', 'Color', 'w');
     MonitorsPos = get(0,'MonitorPositions');
     if     size(MonitorsPos,1) == 1
         set(dFigH1,'OuterPosition', MonitorsPos(1,:));
@@ -201,7 +203,7 @@ if debugVisu
 end
 
 % Mapping of landmarks and areas of the template to the subject
-femurCondRegKDTree=createns(femurCondReg.vertices);
+femurCondRegKDTree = createns(femurCondReg.vertices);
 % Landmarks
 load('template_landmarks.mat','landmarks')
 if debugVisu
@@ -265,7 +267,6 @@ if isnan(FHC)
     Head = femur.vertices(areas{ismember(areas(:,1),'Head'),3},:);
     headSphere = fitSphere(Head); 
     FHC = headSphere(1:3);
-    % Radius = headSphere(4);
     if debugVisu
         patchProps.FaceColor = [223, 206, 161]/255;
         patchProps.FaceAlpha = 0.5;
@@ -273,10 +274,12 @@ if isnan(FHC)
         dFigH2.Name=['Subject ' subject ': FHC, neck axis, shaft axis, ... (debug figure)'];
         dFigH2.NumberTitle='Off';
         mouseControl3d(dAxH2)
-        % drawSphere(dAxH2, [FHC, Radius])
+        debugHandle = drawSphere(dAxH2, headSphere, ...
+            'nPhi', 360, 'nTheta', 180, 'FaceAlpha',0.5);
         drawPoint3d(dAxH2, FHC,'MarkerFaceColor','k','MarkerEdgeColor','k');
         fontSize = 16;
         drawLabels3d(dAxH2, FHC,'FHC', 'FontSize',fontSize, 'VerticalAlignment','Top')
+        delete(debugHandle)
     end
 end
 
@@ -288,35 +291,28 @@ if isnan(NeckAxis)
     % Neck axis is defined by center and normal of the ellipse
     NeckAxis = [NeckEllipse(1:3), normalizeVector3d(transformVector3d([0 0 1], NeckEllipseTFM))];
 end
-NeckPlane=createPlane(NeckAxis(1:3), NeckAxis(4:6));
+NeckPlane = createPlane(NeckAxis(1:3), NeckAxis(4:6));
 % Neck axis should point in lateral direction
 if ~isBelowPlane(FHC,NeckPlane)
-    NeckAxis=reverseLine3d(NeckAxis);
+    NeckAxis = reverseLine3d(NeckAxis);
 end
 if debugVisu
-    % drawEllipse3d(NeckEllipse)
+    debugHandle = drawEllipse3d(NeckEllipse);
+    delete(debugHandle)
 end
 % Use vertex indices of the mesh to define the neck axis
 LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
 if debugVisu
-    % debugNeckAxis = createLine3d(...
-    %     femur.vertices(LMIdx.NeckAxis(1),:),...
-    %     femur.vertices(LMIdx.NeckAxis(2),:));
-    % debugNeckAxis(4:6) = normalizeVector3d(debugNeckAxis(4:6));
-    % drawVector3d(dAxH2, debugNeckAxis(1:3),debugNeckAxis(4:6)*100,'-.r');
+    debugNeckAxis = createLine3d(...
+        femur.vertices(LMIdx.NeckAxis(1),:),...
+        femur.vertices(LMIdx.NeckAxis(2),:));
+    debugNeckAxis(4:6) = normalizeVector3d(debugNeckAxis(4:6));
+    debugHandle = drawArrow3d(dAxH2, debugNeckAxis(1:3),debugNeckAxis(4:6)*100,'r');
+    delete(debugHandle)
 end
 
 % Shaft Axis
 [ShaftAxis, LMIdx.ShaftAxis] = detectShaftAxis(femur, FHC, 'debug',debugVisu);
-if debugVisu
-    % debugShaftAxis = createLine3d(...
-    %     femur.vertices(LMIdx.ShaftAxis(1),:),...
-    %     femur.vertices(LMIdx.ShaftAxis(2),:));
-    % debugShaftAxis(4:6) = normalizeVector3d(debugShaftAxis(4:6));
-    % drawVector3d(dAxH2, debugShaftAxis(1:3),debugShaftAxis(4:6)*100,'-.g');
-    drawLine3d(dAxH2, ShaftAxis, 'Color','r', 'LineWidth',2)
-end
-
 
 %% Refinement of the neck axis
 if verb
@@ -365,10 +361,10 @@ CondyleAxisInertia = createLine3d(...
     femurInertia.vertices(LMIdx.MedialEpicondyle,:),...
     femurInertia.vertices(LMIdx.LateralEpicondyle,:));
 % Shaft axis in the inertia system
-ShaftAxisInertia=createLine3d(...
+ShaftAxisInertia = createLine3d(...
     femurInertia.vertices(LMIdx.ShaftAxis(2),:),...
     femurInertia.vertices(LMIdx.ShaftAxis(1),:));
-ShaftAxisInertia(4:6)=normalizeVector3d(ShaftAxisInertia(4:6));
+ShaftAxisInertia(4:6) = normalizeVector3d(ShaftAxisInertia(4:6));
 
 % Cut the distal femur in the inertia system
 if CondyleAxisInertia(1)>0; cutDir=1; else; cutDir=-1; end
@@ -410,8 +406,7 @@ end
 
 
 %% Refinement of the Intercondylar Notch (ICN)
-LMIdx.ICN_mapped = LMIdx.IntercondylarNotch;
-extremePoints = distalFemoralExtremePoints(distalFemurUSP, 'R', PFEA, 'visu', debugVisu, 'debug',0);
+extremePoints = distalFemoralExtremePoints(distalFemurUSP, 'R', PFEA, 'visu', 0, 'debug',0);
 extremePointsInertia = structfun(@(x) transformPoint3d(x, inv(USP_TFM)), extremePoints,'uni',0);
 [~, LMIdx.IntercondylarNotch] = pdist2(femurInertia.vertices, ...
     extremePointsInertia.ICN, 'euclidean','Smallest',1);
@@ -424,12 +419,12 @@ if debugVisu
     ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
     drawPoint3d(dAxH2, ICN,'MarkerFaceColor','k','MarkerEdgeColor','k');
     drawLabels3d(dAxH2, ICN,'ICN', 'FontSize',fontSize, 'VerticalAlignment','Top')
-    % MPPC = femur.vertices(LMIdx.MedialProximoposteriorCondyle,:);
-    % drawPoint3d(dAxH2, MPPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
-    % drawLabels3d(dAxH2, MPPC,'MPPC')
-    % LPPC = femur.vertices(LMIdx.LateralProximoposteriorCondyle,:);
-    % drawPoint3d(dAxH2, LPPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
-    % drawLabels3d(dAxH2, LPPC,'LPPC')
+    MPPC = femur.vertices(LMIdx.MedialProximoposteriorCondyle,:);
+    drawPoint3d(dAxH2, MPPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
+    drawLabels3d(dAxH2, MPPC,'MPPC')
+    LPPC = femur.vertices(LMIdx.LateralProximoposteriorCondyle,:);
+    drawPoint3d(dAxH2, LPPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
+    drawLabels3d(dAxH2, LPPC,'LPPC')
     MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
     drawPoint3d(dAxH2, MPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
     drawLabels3d(dAxH2, MPC,'MPC', 'FontSize',fontSize, 'VerticalAlignment','Top')
