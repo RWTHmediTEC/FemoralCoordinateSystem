@@ -31,9 +31,16 @@ for s=1%:size(Subjects, 1)
     femur = B(ismember({B.name}, ['Femur_' side])).mesh;
     % Remove sesamoid bones if present
     femur = splitMesh(femur, 'mostVertices');
-    [TFM2FCS, LM, LMIdx, TFM] = automaticFemoralCS(femur, side,...
-        'definition','MediTEC', 'visu',1, 'verb',0, 'debug',0, 'Subject',id);
-    
+    if s == 22 && strcmp(side, 'R')
+        % Subject with a hinged total knee arthroplasty (TKA)
+        [TFM2FCS, LM, LMIdx, TFM] = automaticFemoralCS(femur, side,...
+            'definition','Wu2002', 'visu',1, 'verb',1, 'debug',0, 'Subject',id, ...
+            'minimalRefinement', 1); % Activated "minimalRefinement"
+    else
+        % All other subjects
+        [TFM2FCS, LM, LMIdx, TFM] = automaticFemoralCS(femur, side,...
+            'definition','mediTEC', 'visu',1, 'verb',1, 'debug',0, 'Subject',id);
+    end
 end
 
 % [List.f, List.p] = matlab.codetools.requiredFilesAndProducts([mfilename '.m']); 

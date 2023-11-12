@@ -35,7 +35,7 @@ LEC = femur.vertices(LMIdx.LateralEpicondyle,:);
 
 %% Coordinate system
 % Midpoint between the epicondyles
-MEC_LEC_midPoint=midPoint3d(MEC, LEC);
+MEC_LEC_midPoint = midPoint3d(MEC, LEC);
 % Mechanical axis is the connection of EC midpoint and hip joint center
 MechanicalAxis = createLine3d(MEC_LEC_midPoint, HJC);
 % Connection of the epicondyles
@@ -48,7 +48,7 @@ Z = normalizeVector3d(crossProduct3d(X, Y));
 TFM = [[X;Y;Z],[0 0 0]'; [0 0 0 1]]*createTranslation3d(-HJC);
 % If it is a left femur, rotate 180° around the Y axis
 if strcmp(side, 'L')
-    TFM=createRotationOy(pi)*TFM;
+    TFM = createRotationOy(pi)*TFM;
 end
 
 %% visualization

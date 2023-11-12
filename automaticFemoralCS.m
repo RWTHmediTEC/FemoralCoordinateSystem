@@ -17,7 +17,9 @@ function [TFM2FCS, LM, LMIdx, TFM] = automaticFemoralCS(femur, side, varargin)
 %       'Bergmann2016' - 2016 - Bergmann et al. - Standardized Loads Acting
 %           in Hip Implants
 %       'Tabletop' - Defined by the table top plane
-%       'MediTEC' - Defined by the mechanical axis and table top plane
+%       'mediTEC' - Defined by the mechanical axis and table top plane
+%   'minimalRefinement': Skips some of the landmarks refinements. More
+%       robust, maybe less accuarate.
 %   'visualization': true (default) or false
 %   'subject': Identification of the subject. Default is '?'.
 %
@@ -46,16 +48,16 @@ addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'res']));
 p = inputParser;
 logParValidFunc=@(x) (islogical(x) || isequal(x,1) || isequal(x,0));
 addRequired(p,'femur',@(x) isstruct(x) && isfield(x, 'vertices') && isfield(x,'faces'))
-addRequired(p,'side',@(x) any(validatestring(upper(x(1)),{'R','L'})));
+addRequired(p,'side',@(x) any(validatestring(upper(x(1)), {'R','L'})));
 isPoint3d = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,3]});
 addParameter(p,'FHC',nan, isPoint3d);
 isLine3d = @(x) validateattributes(x,{'numeric'},...
     {'nonempty','nonnan','real','finite','size',[1,6]});
 addParameter(p,'NeckAxis',nan, isLine3d);
-validCSStrings = {'Wu2002','Bergmann2016','Tabletop','MediTEC'};
-addParameter(p,'definition','Wu2002',@(x) any(validatestring(x,validCSStrings)));
-addParameter(p,'minimalRefinement',true,logParValidFunc);
+validCSStrings = {'Wu2002','Bergmann2016','Tabletop','mediTEC'};
+addParameter(p,'definition','Wu2002',@(x) any(strcmp(x,validCSStrings)));
+addParameter(p,'minimalRefinement',false,logParValidFunc);
 addParameter(p,'visualization',true,logParValidFunc);
 addParameter(p,'verbose',false,logParValidFunc);
 addParameter(p,'subject','?',@(x) validateattributes(x,{'char'},{'nonempty'}));
@@ -277,7 +279,7 @@ if isnan(FHC)
         debugHandle = drawSphere(dAxH2, headSphere, ...
             'nPhi', 360, 'nTheta', 180, 'FaceAlpha',0.5);
         drawPoint3d(dAxH2, FHC,'MarkerFaceColor','k','MarkerEdgeColor','k');
-        fontSize = 16;
+        fontSize = 12;
         drawLabels3d(dAxH2, FHC,'FHC', 'FontSize',fontSize, 'VerticalAlignment','Top')
         delete(debugHandle)
     end
@@ -314,138 +316,149 @@ end
 % Shaft Axis
 [ShaftAxis, LMIdx.ShaftAxis] = detectShaftAxis(femur, FHC, 'debug',debugVisu);
 
+
 %% Refinement of the neck axis
-if verb
-    disp('_____________________ Refinement of the neck axis ____________________')
-end
-try
-    NeckAxis = femoralNeckAxis(femur, side, NeckAxis, ShaftAxis, ...
-        'visu',debugVisu, 'verbose',verb, 'subject',subject);
-catch
-    % In case the morphing of the neck did not work properly.
-    FHC2ShaftAxis = projPointOnLine3d(FHC, ShaftAxis);
-    NeckAxis = createLine3d(midPoint3d(FHC2ShaftAxis, FHC), FHC2ShaftAxis);
-    OrthogonalAxis = [midPoint3d(FHC2ShaftAxis, FHC), crossProduct3d(NeckAxis(4:6), ShaftAxis(4:6))];
-    DEF_NECK_SHAFT_ANGLE = 135;
-    NeckAxis = transformLine3d(NeckAxis, ...
-        createRotation3dLineAngle(OrthogonalAxis, deg2rad(DEF_NECK_SHAFT_ANGLE-90)));
-    NeckAxis = femoralNeckAxis(femur, side, NeckAxis, ShaftAxis, ...
-        'visu',debugVisu, 'verbose',verb,'subject',subject, 'PlaneVariationRange',12);
-end
-LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
-if debugVisu
-    % For publication
-    % set(gcf, 'GraphicsSmoothing','off')
-    % export_fig('Figure4', '-tif', '-r300')
-    
-    % debugNeckAxis = createLine3d(...
-    %     femur.vertices(LMIdx.NeckAxis(1),:),...
-    %     femur.vertices(LMIdx.NeckAxis(2),:));
-    % debugNeckAxis(4:6) = normalizeVector3d(debugNeckAxis(4:6));
-    % drawVector3d(dAxH2, debugNeckAxis(1:3),debugNeckAxis(4:6)*100, 'r');
-    NeckEdge = [NeckAxis(1:3) + NeckAxis(4:6)*50; NeckAxis(1:3) - NeckAxis(4:6)*50];
-    drawEdge3d(dAxH2, NeckEdge, 'Color','g', 'LineWidth',2)
+if ~minimalRefinement || strcmp(definition, 'Bergmann2016')
+    if verb
+        disp('_____________________ Refinement of the neck axis ____________________')
+    end
+    try
+        NeckAxis = femoralNeckAxis(femur, side, NeckAxis, ShaftAxis, ...
+            'visu',debugVisu, 'verbose',verb, 'subject',subject);
+    catch
+        % In case the morphing of the neck did not work properly.
+        FHC2ShaftAxis = projPointOnLine3d(FHC, ShaftAxis);
+        NeckAxis = createLine3d(midPoint3d(FHC2ShaftAxis, FHC), FHC2ShaftAxis);
+        OrthogonalAxis = [midPoint3d(FHC2ShaftAxis, FHC), crossProduct3d(NeckAxis(4:6), ShaftAxis(4:6))];
+        DEF_NECK_SHAFT_ANGLE = 135;
+        NeckAxis = transformLine3d(NeckAxis, ...
+            createRotation3dLineAngle(OrthogonalAxis, deg2rad(DEF_NECK_SHAFT_ANGLE-90)));
+        NeckAxis = femoralNeckAxis(femur, side, NeckAxis, ShaftAxis, ...
+            'visu',debugVisu, 'verbose',verb,'subject',subject, 'PlaneVariationRange',12);
+    end
+    LMIdx.NeckAxis = lineToVertexIndices(NeckAxis, femur);
+    if debugVisu
+        % For publication
+        % set(gcf, 'GraphicsSmoothing','off')
+        % export_fig('Figure4', '-tif', '-r300')
+
+        % debugNeckAxis = createLine3d(...
+        %     femur.vertices(LMIdx.NeckAxis(1),:),...
+        %     femur.vertices(LMIdx.NeckAxis(2),:));
+        % debugNeckAxis(4:6) = normalizeVector3d(debugNeckAxis(4:6));
+        % drawVector3d(dAxH2, debugNeckAxis(1:3),debugNeckAxis(4:6)*100, 'r');
+        NeckEdge = [NeckAxis(1:3) + NeckAxis(4:6)*50; NeckAxis(1:3) - NeckAxis(4:6)*50];
+        drawEdge3d(dAxH2, NeckEdge, 'Color','g', 'LineWidth',2)
+    end
 end
 
-
-%% Detection of the tabletop plane
-LMIdx = detectTabletopPlane(femur, side, FHC, NeckAxis, LMIdx, 'visu', debugVisu);
+%% Detection of the tabletop plane (MPC, LPC, PTC)
+if ~minimalRefinement || strcmp(definition, 'Bergmann2016') ...
+        || strcmp(definition, 'Tabletop') || strcmp(definition, 'mediTEC')
+    LMIdx = detectTabletopPlane(femur, side, FHC, NeckAxis, LMIdx, 'visu', debugVisu);
+end
 
 
 %% Refinement of the epicondyles
-if verb
-    disp('___________________ Refinement of the epicondyles ____________________')
+if ~minimalRefinement || strcmp(definition, 'Bergmann2016') || strcmp(definition, 'mediTEC')
+    if verb
+        disp('___________________ Refinement of the epicondyles ____________________')
+    end
+    % Axis through the epicondyles in the inertia system
+    CondyleAxisInertia = createLine3d(...
+        femurInertia.vertices(LMIdx.MedialEpicondyle,:),...
+        femurInertia.vertices(LMIdx.LateralEpicondyle,:));
+    % Shaft axis in the inertia system
+    ShaftAxisInertia = createLine3d(...
+        femurInertia.vertices(LMIdx.ShaftAxis(2),:),...
+        femurInertia.vertices(LMIdx.ShaftAxis(1),:));
+    ShaftAxisInertia(4:6) = normalizeVector3d(ShaftAxisInertia(4:6));
+
+    % Cut the distal femur in the inertia system
+    if CondyleAxisInertia(1)>0; cutDir=1; else; cutDir=-1; end
+    distalCutPlaneInertia = createPlane([cutDir*1/4*femurInertiaLength 0 0], -ShaftAxisInertia(4:6));
+    distalFemurInertia = cutMeshByPlane(femurInertia, distalCutPlaneInertia);
+
+    % Transform into the inital USP CS
+    uspPreTFM = anatomicalOrientationTFM('RAS','ASR') * ...
+        Tabletop(femurInertia, 'R', FHC, LMIdx, 'visu', false);
+    % The inertia femur is always a right femur because left femurs are mirrored
+    [USP_TFM, PFEA, CEA] = USP(distalFemurInertia, 'R', ...
+        rotation3dToEulerAngles(uspPreTFM(1:3,1:3), 'ZYX'), ...
+        'visu',debugVisu, ...
+        'verbose',verb, ...
+        'subject',subject);
+
+    % Transform distal femur into the USP CS
+    distalFemurUSP = transformPoint3d(distalFemurInertia, USP_TFM);
+    % Get the mapped points of the epicodyles in USP CS
+    MEC_map_USP = transformPoint3d(femurInertia.vertices(LMIdx.MedialEpicondyle,:), USP_TFM);
+    LEC_map_USP = transformPoint3d(femurInertia.vertices(LMIdx.LateralEpicondyle,:), USP_TFM);
+    % Refinement of the epicondyles (beta)
+    [MEC_USP, LEC_USP] = epicondyleRefinement(distalFemurUSP, CEA, ...
+        MEC_map_USP, LEC_map_USP, 'visu',debugVisu);
+
+    % Get the epicondyle indices for the full femur
+    EC_Inertia = transformPoint3d([MEC_USP; LEC_USP], inv(USP_TFM));
+    [~, EC_Idx] = pdist2(femurInertia.vertices, EC_Inertia, 'euclidean', 'Smallest',1);
+    if side == 'L'; flipud(EC_Idx); end
+    LMIdx.MedialEpicondyle = EC_Idx(1); LMIdx.LateralEpicondyle = EC_Idx(2);
+
+    if debugVisu
+        MEC = femur.vertices(LMIdx.MedialEpicondyle,:);
+        LEC = femur.vertices(LMIdx.LateralEpicondyle,:);
+        drawPoint3d(dAxH2, [MEC; LEC],'MarkerFaceColor','k','MarkerEdgeColor','k');
+        drawLabels3d(dAxH2, MEC,'MEC', 'FontSize',fontSize, 'VerticalAlignment','Top')
+        drawLabels3d(dAxH2, LEC,'LEC', 'FontSize',fontSize, 'VerticalAlignment','Top')
+    end
+
+
+    %% Refinement of the Intercondylar Notch (ICN)
+    extremePoints = distalFemoralExtremePoints(distalFemurUSP, 'R', PFEA, ...
+        'visu', debugVisu, 'subject',subject, 'debug',0);
+    extremePointsInertia = structfun(@(x) transformPoint3d(x, inv(USP_TFM)), extremePoints,'uni',0);
+    [~, LMIdx.IntercondylarNotch] = pdist2(femurInertia.vertices, ...
+        extremePointsInertia.ICN, 'euclidean','Smallest',1);
+    [~, LMIdx.MedialProximoposteriorCondyle] = pdist2(femurInertia.vertices, ...
+        extremePointsInertia.MPPC, 'euclidean','Smallest',1);
+    [~, LMIdx.LateralProximoposteriorCondyle] = pdist2(femurInertia.vertices, ...
+        extremePointsInertia.LPPC, 'euclidean','Smallest',1);
+
+    if debugVisu
+        ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
+        drawPoint3d(dAxH2, ICN,'MarkerFaceColor','k','MarkerEdgeColor','k');
+        drawLabels3d(dAxH2, ICN,'ICN', 'FontSize',fontSize, 'VerticalAlignment','Top')
+        MPPC = femur.vertices(LMIdx.MedialProximoposteriorCondyle,:);
+        drawPoint3d(dAxH2, MPPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
+        drawLabels3d(dAxH2, MPPC,'MPPC', 'FontSize',fontSize, 'VerticalAlignment','Top')
+        LPPC = femur.vertices(LMIdx.LateralProximoposteriorCondyle,:);
+        drawPoint3d(dAxH2, LPPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
+        drawLabels3d(dAxH2, LPPC,'LPPC', 'FontSize',fontSize, 'VerticalAlignment','Top')
+        MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
+        drawPoint3d(dAxH2, MPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
+        drawLabels3d(dAxH2, MPC,'MPC', 'FontSize',fontSize, 'VerticalAlignment','Top')
+        LPC = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
+        drawPoint3d(dAxH2, LPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
+        drawLabels3d(dAxH2, LPC,'LPC', 'FontSize',fontSize, 'VerticalAlignment','Top')
+        PTC = femur.vertices(LMIdx.PosteriorTrochantericCrest,:);
+        drawPoint3d(dAxH2, PTC,'MarkerFaceColor','k','MarkerEdgeColor','k');
+        drawLabels3d(dAxH2, PTC,'PTC', 'FontSize',fontSize, 'VerticalAlignment','Top')
+        ttpProps.FaceColor='blue'; ttpProps.FaceAlpha=0.5; ttpProps.EdgeColor='none';
+        ttpPatch.vertices=[MPC; LPC; PTC];
+        ttpPatch.faces=[1 2 3];
+        patch(dAxH2, ttpPatch, ttpProps)
+    end
+
+
+    %% PFEA and CEA
+    LM.PFEA = transformLine3d(PFEA, inv(femurProps.InertiaTFM)*xReflection*inv(USP_TFM));  %#ok<MINV>
+    LM.CEA = transformLine3d(CEA, inv(femurProps.InertiaTFM)*xReflection*inv(USP_TFM)); %#ok<MINV>
+    LMIdx.PFEA = lineToVertexIndices(LM.PFEA, femur);
+    LMIdx.CEA = lineToVertexIndices(LM.CEA, femur);
+    
+    % 
+    TFM.USP = USP_TFM*xReflection*inertiaTFM;
 end
-% Axis through the epicondyles in the inertia system
-CondyleAxisInertia = createLine3d(...
-    femurInertia.vertices(LMIdx.MedialEpicondyle,:),...
-    femurInertia.vertices(LMIdx.LateralEpicondyle,:));
-% Shaft axis in the inertia system
-ShaftAxisInertia = createLine3d(...
-    femurInertia.vertices(LMIdx.ShaftAxis(2),:),...
-    femurInertia.vertices(LMIdx.ShaftAxis(1),:));
-ShaftAxisInertia(4:6) = normalizeVector3d(ShaftAxisInertia(4:6));
-
-% Cut the distal femur in the inertia system
-if CondyleAxisInertia(1)>0; cutDir=1; else; cutDir=-1; end
-distalCutPlaneInertia = createPlane([cutDir*1/4*femurInertiaLength 0 0], -ShaftAxisInertia(4:6));
-distalFemurInertia = cutMeshByPlane(femurInertia, distalCutPlaneInertia);
-
-% Transform into the inital USP CS
-uspPreTFM = anatomicalOrientationTFM('RAS','ASR') * ...
-    Tabletop(femurInertia, 'R', FHC, LMIdx, 'visu', false);
-% The inertia femur is always a right femur because left femurs are mirrored
-[USP_TFM, PFEA, CEA] = USP(distalFemurInertia, 'R', ...
-    rotation3dToEulerAngles(uspPreTFM(1:3,1:3), 'ZYX'), ...
-    'visu',debugVisu, ...
-    'verbose',verb, ...
-    'subject',subject);
-
-% Transform distal femur into the USP CS
-distalFemurUSP = transformPoint3d(distalFemurInertia, USP_TFM);
-% Get the mapped points of the epicodyles in USP CS
-MEC_map_USP = transformPoint3d(femurInertia.vertices(LMIdx.MedialEpicondyle,:), USP_TFM);
-LEC_map_USP = transformPoint3d(femurInertia.vertices(LMIdx.LateralEpicondyle,:), USP_TFM);
-% Refinement of the epicondyles (beta)
-[MEC_USP, LEC_USP] = epicondyleRefinement(distalFemurUSP, CEA, ...
-    MEC_map_USP, LEC_map_USP, 'visu',debugVisu);
-
-% Get the epicondyle indices for the full femur
-EC_Inertia = transformPoint3d([MEC_USP; LEC_USP], inv(USP_TFM));
-[~, EC_Idx] = pdist2(femurInertia.vertices, EC_Inertia, 'euclidean', 'Smallest',1);
-if side == 'L'; flipud(EC_Idx); end
-LMIdx.MedialEpicondyle = EC_Idx(1); LMIdx.LateralEpicondyle = EC_Idx(2);
-
-if debugVisu
-    MEC = femur.vertices(LMIdx.MedialEpicondyle,:);
-    LEC = femur.vertices(LMIdx.LateralEpicondyle,:);
-    drawPoint3d(dAxH2, [MEC; LEC],'MarkerFaceColor','k','MarkerEdgeColor','k');
-    drawLabels3d(dAxH2, MEC,'MEC', 'FontSize',fontSize, 'VerticalAlignment','Top')
-    drawLabels3d(dAxH2, LEC,'LEC', 'FontSize',fontSize, 'VerticalAlignment','Top')
-end
-
-
-%% Refinement of the Intercondylar Notch (ICN)
-extremePoints = distalFemoralExtremePoints(distalFemurUSP, 'R', PFEA, 'visu', 0, 'debug',0);
-extremePointsInertia = structfun(@(x) transformPoint3d(x, inv(USP_TFM)), extremePoints,'uni',0);
-[~, LMIdx.IntercondylarNotch] = pdist2(femurInertia.vertices, ...
-    extremePointsInertia.ICN, 'euclidean','Smallest',1);
-[~, LMIdx.MedialProximoposteriorCondyle] = pdist2(femurInertia.vertices, ...
-    extremePointsInertia.MPPC, 'euclidean','Smallest',1);
-[~, LMIdx.LateralProximoposteriorCondyle] = pdist2(femurInertia.vertices, ...
-    extremePointsInertia.LPPC, 'euclidean','Smallest',1);
-
-if debugVisu
-    ICN = femur.vertices(LMIdx.IntercondylarNotch,:);
-    drawPoint3d(dAxH2, ICN,'MarkerFaceColor','k','MarkerEdgeColor','k');
-    drawLabels3d(dAxH2, ICN,'ICN', 'FontSize',fontSize, 'VerticalAlignment','Top')
-    MPPC = femur.vertices(LMIdx.MedialProximoposteriorCondyle,:);
-    drawPoint3d(dAxH2, MPPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
-    drawLabels3d(dAxH2, MPPC,'MPPC')
-    LPPC = femur.vertices(LMIdx.LateralProximoposteriorCondyle,:);
-    drawPoint3d(dAxH2, LPPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
-    drawLabels3d(dAxH2, LPPC,'LPPC')
-    MPC = femur.vertices(LMIdx.MedialPosteriorCondyle,:);
-    drawPoint3d(dAxH2, MPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
-    drawLabels3d(dAxH2, MPC,'MPC', 'FontSize',fontSize, 'VerticalAlignment','Top')
-    LPC = femur.vertices(LMIdx.LateralPosteriorCondyle,:);
-    drawPoint3d(dAxH2, LPC,'MarkerFaceColor','k','MarkerEdgeColor','k');
-    drawLabels3d(dAxH2, LPC,'LPC', 'FontSize',fontSize, 'VerticalAlignment','Top')
-    PTC = femur.vertices(LMIdx.PosteriorTrochantericCrest,:);
-    drawPoint3d(dAxH2, PTC,'MarkerFaceColor','k','MarkerEdgeColor','k');
-    drawLabels3d(dAxH2, PTC,'PTC', 'FontSize',fontSize, 'VerticalAlignment','Top')
-    ttpProps.FaceColor='blue'; ttpProps.FaceAlpha=0.5; ttpProps.EdgeColor='none';
-    ttpPatch.vertices=[MPC; LPC; PTC];
-    ttpPatch.faces=[1 2 3];
-    patch(dAxH2, ttpPatch, ttpProps)
-end
-
-
-%% PFEA and CEA
-LM.PFEA = transformLine3d(PFEA, inv(femurProps.InertiaTFM)*xReflection*inv(USP_TFM));  %#ok<MINV>
-LM.CEA = transformLine3d(CEA, inv(femurProps.InertiaTFM)*xReflection*inv(USP_TFM)); %#ok<MINV>
-LMIdx.PFEA = lineToVertexIndices(LM.PFEA, femur);
-LMIdx.CEA = lineToVertexIndices(LM.CEA, femur);
 
 
 %% Construct the FCS
@@ -457,8 +470,7 @@ end
 TFM.Wu2002 = Wu2002(femur,side,FHC,LMIdx, 'visu',CSIdx(1));
 TFM.Bergmann2016 = Bergmann2016(femur, side, FHC, LMIdx, 'visu',CSIdx(2));
 TFM.Tabletop = Tabletop(femur, side, FHC, LMIdx, 'visu',CSIdx(3));
-TFM.MediTEC = MediTEC(femur, side, FHC, LMIdx, 'visu',CSIdx(4));
-TFM.USP = USP_TFM*xReflection*inertiaTFM;
+TFM.mediTEC = MediTEC(femur, side, FHC, LMIdx, 'visu',CSIdx(4));
 
 TFM2FCS = TFM.(definition);
 
