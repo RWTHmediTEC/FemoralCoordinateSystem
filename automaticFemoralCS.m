@@ -117,8 +117,7 @@ if debugVisu
     
     % The subject in the inertia CS
     visualizeMeshes(dAxH1(1), femurInertia);
-    dFig1View = [90,-90];
-    view(dAxH1(1),dFig1View); axis(dAxH1(1), 'tight');
+    setRegistrationAxes(dAxH1(1))
 end
 
 % Load template
@@ -137,7 +136,6 @@ if debugVisu
     tPH = uipanel('Title','Template & length adj. subject','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*1 0.01 BSX 0.99]);
     dAxH1(2) = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(dAxH1(2),dFig1View); axis(dAxH1(2), 'tight');
     % The scaled femur in the inertia CS
     visualizeMeshes(dAxH1(2), femurXScaling);
     templateProps.EdgeColor = 'none';
@@ -145,6 +143,7 @@ if debugVisu
     templateProps.FaceLighting = 'gouraud';
     % The template in the template CS
     patch(dAxH1(2), template, templateProps);
+    setRegistrationAxes(dAxH1(2))
 end
 
 % Rough pre-registration of the subject to the template
@@ -154,10 +153,10 @@ if debugVisu
     tPH = uipanel('Title','Rough pre-registration','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*2 0.01 BSX 0.99]);
     dAxH1(3) = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(dAxH1(3),dFig1View); axis(dAxH1(3), 'tight');
     % Subject after rough pre-registration
     visualizeMeshes(dAxH1(3), femurPreReg);
     patch(template, templateProps)
+    setRegistrationAxes(dAxH1(3))
 end
 
 % Register femoral condyles of the subject to the template
@@ -167,10 +166,10 @@ if debugVisu
     tPH = uipanel('Title','Condyle registration','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*3 0.01 BSX 0.99]);
     dAxH1(4) = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(dAxH1(4),dFig1View); axis(dAxH1(4), 'tight');
     % The subject after condyle registration
     visualizeMeshes(dAxH1(4), femurCondReg);
     patch(template, templateProps)
+    setRegistrationAxes(dAxH1(4))
 end
 
 % Adapt femoral version, neck-shaft angle and neck length of the template
@@ -180,10 +179,10 @@ if debugVisu
     tPH = uipanel('Title','Neck & head registration','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*4 0.01 BSX 0.99]);
     dAxH1(5) = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(dAxH1(5),dFig1View); axis(dAxH1(5), 'tight');
     % The adapted template
     visualizeMeshes(dAxH1(5), femurCondReg);
     patch(templatePreReg, templateProps)
+    setRegistrationAxes(dAxH1(5))
 end
 
 % Non-rigid ICP registration
@@ -198,10 +197,10 @@ if debugVisu
     tPH = uipanel('Title','Nonrigid ICP registration','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*5 0.01 BSX 0.99]);
     dAxH1(6) = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(dAxH1(6),dFig1View); axis(dAxH1(6), 'tight');
     % The femur after NICP registration
     visualizeMeshes(dAxH1(6), femurCondReg);
     patch(templateNICP, templateProps)
+    setRegistrationAxes(dAxH1(6))
 end
 
 % Mapping of landmarks and areas of the template to the subject
@@ -225,8 +224,8 @@ if debugVisu
     tPH = uipanel('Title','Mapping to the subject','FontSize',14,'BorderWidth',2,...
         'BackgroundColor','w','Position',[BW+(BSX+BW)*6 0.01 BSX 0.99]);
     dAxH1(7) = axes('Parent', tPH, 'Visible','off', 'Color','w');
-    view(dAxH1(7),dFig1View); axis(dAxH1(7), 'tight');
     visualizeMeshes(dAxH1(7), femurInertia);
+    setRegistrationAxes(dAxH1(7))
     drawPoint3d(dAxH1(7), femurInertia.vertices(landmarksIdx,:),...
         'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',3)
 end
@@ -251,16 +250,6 @@ for a=1:size(areas,1)
             'MarkerFaceColor','k','MarkerEdgeColor','k','MarkerSize',3)
     end
 end
-
-if debugVisu
-%     % For publication
-%     XLIM = [-270,240]; YLIM = [-50,45];
-%     arrayfun(@(x) xlim(x,XLIM), dAxH1)
-%     arrayfun(@(x) ylim(x,YLIM), dAxH1);
-%     set(dFigH1, 'GraphicsSmoothing','off')
-%     export_fig('Figure2', '-tif', '-r300')
-end
-
 
 %% Extract parameter
 % Hip joint center
@@ -490,4 +479,13 @@ LM.MedialProximoposteriorCondyle = femur.vertices(LMIdx.MedialProximoposteriorCo
 LM.LateralProximoposteriorCondyle = femur.vertices(LMIdx.LateralProximoposteriorCondyle,:);
 LM.PosteriorTrochantericCrest = femur.vertices(LMIdx.PosteriorTrochantericCrest,:);
 
+end
+
+function setRegistrationAxes(axH)
+dRegFigView = [90,-90];
+view(axH, dRegFigView); axis(axH, 'tight');
+hLight = light(axH);
+light(axH, 'Position', -1*(get(hLight,'Position')));
+axis(axH, 'on'); axis(axH, 'equal'); hold(axH, 'on')
+xlabel(axH, 'x'); ylabel(axH, 'y'); zlabel(axH, 'z');
 end
