@@ -11,7 +11,7 @@ function TFM = Bergmann2016(femur, side, HJC, LMIdx, varargin)
 %   direction."
 %
 % AUTHOR: Maximilian C. M. Fischer
-% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020-2023 Maximilian C. M. Fischer
 % LICENSE: EUPL v1.2
 %
 

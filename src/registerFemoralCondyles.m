@@ -3,7 +3,7 @@ function preallignedSubject = registerFemoralCondyles(template, subject)
 % template's femoral condyles
 %
 % AUTHOR: Maximilian C. M. Fischer
-% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020-2023 Maximilian C. M. Fischer
 % LICENSE: EUPL v1.2
 %
 

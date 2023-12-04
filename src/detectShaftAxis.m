@@ -21,7 +21,7 @@ function [shaftAxis, shaftAxisIdx] = detectShaftAxis(femur, FHC, varargin)
 %     femur.
 %
 % AUTHOR: Maximilian C. M. Fischer
-% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020-2023 Maximilian C. M. Fischer
 % LICENSE: EUPL v1.2
 %
 

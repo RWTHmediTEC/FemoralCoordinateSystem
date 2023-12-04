@@ -8,7 +8,7 @@ function TFM  = MediTEC(femur, side, HJC, LMIdx, varargin)
 % X axis: Orthogonal to the Y and Z axis
 %
 % AUTHOR: Maximilian C. M. Fischer
-% COPYRIGHT (C) 2021 Maximilian C. M. Fischer
+% COPYRIGHT (C) 2021-2023 Maximilian C. M. Fischer
 % LICENSE: EUPL v1.2
 %
 

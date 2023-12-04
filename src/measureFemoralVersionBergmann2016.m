@@ -7,7 +7,7 @@ function femoralVersion = measureFemoralVersionBergmann2016(HJC, P1, P2, MPC, LP
 % the transverse plane.
 %
 % AUTHOR: Maximilian C. M. Fischer
-% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020-2023 Maximilian C. M. Fischer
 % LICENSE: EUPL v1.2
 %
 

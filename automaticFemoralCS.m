@@ -37,12 +37,12 @@ function [TFM2FCS, LM, LMIdx, TFM] = automaticFemoralCS(femur, side, varargin)
 % 	mediTEC - Chair of Medical Engineering, RWTH Aachen University
 % VERSION: 2.0.0
 % DATE: 2020-11-18
-% COPYRIGHT (C) 2020 Maximilian C. M. Fischer
+% COPYRIGHT (C) 2020-2023 Maximilian C. M. Fischer
 % LICENSE: EUPL v1.2
 % 
 
-addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'src']));
-addpath(genpath([fileparts([mfilename('fullpath'), '.m']) '\' 'res']));
+addpath(genpath(fullfile(fileparts([mfilename('fullpath'), '.m']), 'src')));
+addpath(genpath(fullfile(fileparts([mfilename('fullpath'), '.m']), 'res')));
 
 %% Parse inputs
 p = inputParser;
